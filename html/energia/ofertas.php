@@ -173,36 +173,11 @@ $ofertas_paginadas = array_slice($ofertas, $offset, $per_page);
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 </head>
-<body class="bg-gray-100 font-sans flex">
-    <nav class="w-64 bg-white shadow-md p-4">
-        <h3 class="text-lg font-bold mb-4">Navegação</h3>
-        <ul>
-            <li class="mb-2"><a href="index.php" class="text-gray-700 hover:text-blue-500">Dashboard</a></li>
-            <li class="mb-2"><a href="fatura_detalhada.php" class="text-gray-700 hover:text-blue-500">Fatura Detalhada</a></li>
-            <li class="mb-2"><a href="ofertas.php" class="text-blue-500 font-bold">Comparar Ofertas</a></li>
-            <li class="mb-2"><a href="tarifas.php" class="text-gray-700 hover:text-blue-500">Gerir Tarifas</a></li>
-        </ul>
-        <h3 class="text-lg font-bold mt-8 mb-4">Histórico</h3>
-        <ul>
-            <li class="mb-2"><a href="ofertas.php" class="<?php echo $is_current_period ? 'text-blue-500 font-bold' : 'text-gray-700 hover:text-blue-500' ?>">Período Atual</a></li>
-        </ul>
-        <?php
-            $current_year = null;
-            $meses = ["", "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
-            if (isset($periodos_historicos_result)) {
-                while ($periodo = $periodos_historicos_result->fetch_assoc()) {
-                    if ($periodo['ano'] != $current_year) {
-                        if ($current_year !== null) echo '</ul>';
-                        $current_year = $periodo['ano'];
-                        echo "<h3 class=\"text-lg font-bold mt-8 mb-4\">{$current_year}</h3><ul>";
-                    }
-                    $is_active = (!$is_current_period && isset($ano_selecionado) && $periodo['ano'] == $ano_selecionado && $periodo['mes'] == $mes_selecionado);
-                    echo '<li class="mb-2"><a href="?ano='.$periodo['ano'].'&mes='.$periodo['mes'].'" class="'.($is_active ? 'text-blue-500 font-bold' : 'text-gray-700 hover:text-blue-500').'">'.$meses[$periodo['mes']].'</a></li>';
-                }
-                if ($current_year !== null) echo '</ul>';
-            }
-        ?>
-    </nav>
+<body class="bg-gray-100 font-sans flex">    
+    <?php 
+        $active_page = 'ofertas';
+        require_once 'sidebar.php'; 
+    ?>
 
     <main class="flex-1 p-8">
         <div class="container mx-auto">
@@ -240,11 +215,11 @@ $ofertas_paginadas = array_slice($ofertas, $offset, $per_page);
 
                 <p class="text-gray-700 mb-4">Com base num consumo de <strong class="font-semibold"><?php echo number_format($consumo_cheia + $consumo_ponta, 0, ',', '.'); ?> kWh</strong> (fora de vazio) e <strong class="font-semibold"><?php echo number_format($consumo_vazio, 0, ',', '.'); ?> kWh</strong> (vazio) para uma potência de <strong class="font-semibold"><?php echo $potencia_contratada; ?> kVA</strong>.</p>
                     
-                <div class="flex items-center space-x-4 mb-4">
-                    <span class="flex items-center"><span class="inline-block w-4 h-4 bg-blue-200 rounded-full mr-2"></span> Tarifa Simples</span>
-                    <span class="flex items-center"><span class="inline-block w-4 h-4 bg-green-200 rounded-full mr-2"></span> Tarifa Bi-Horária</span>
-                    <span class="flex items-center"><span class="inline-block w-4 h-4 bg-yellow-200 rounded-full mr-2"></span> Tarifa Indexada</span>
-                    <span class="flex items-center"><span class="inline-block w-4 h-4 bg-gray-400 rounded-full mr-2"></span> A sua oferta atual</span>
+                <div class="flex flex-wrap items-center gap-x-4 gap-y-2 mb-4 text-sm">
+                    <span class="flex items-center gap-2"><span class="inline-flex items-center justify-center w-5 h-5 bg-blue-200 rounded-full text-xs font-bold text-blue-800">S</span> Tarifa Simples</span>
+                    <span class="flex items-center gap-2"><span class="inline-flex items-center justify-center w-5 h-5 bg-green-200 rounded-full text-xs font-bold text-green-800">B</span> Tarifa Bi-Horária</span>
+                    <span class="flex items-center gap-2"><span class="inline-flex items-center justify-center w-5 h-5 bg-yellow-200 rounded-full text-xs font-bold text-yellow-800">I</span> Tarifa Indexada</span>
+                    <span class="flex items-center gap-2"><span class="inline-block w-4 h-4 bg-gray-200 rounded-full"></span> A sua oferta atual</span>
                 </div>
 
                 <div class="flex justify-between items-center mb-4">
@@ -291,14 +266,14 @@ $ofertas_paginadas = array_slice($ofertas, $offset, $per_page);
                                     $icon_html = '';
                                     $tipo_tarifa = strtolower($oferta['TipoTarifa'] ?? '');
 
-                                    if ($tipo_tarifa == 'simples') {
-                                        $icon_html .= '<span class="inline-block w-4 h-4 bg-blue-200 rounded-full" title="Tarifa Simples"></span>';
-                                    } elseif ($tipo_tarifa == 'bi-horario') {
-                                        $icon_html .= '<span class="inline-block w-4 h-4 bg-green-200 rounded-full" title="Tarifa Bi-Horária"></span>';
+                                    if ($tipo_tarifa === 'simples') {
+                                        $icon_html .= '<span class="inline-flex items-center justify-center w-5 h-5 bg-blue-200 rounded-full text-xs font-bold text-blue-800" title="Tarifa Simples">S</span>';
+                                    } elseif ($tipo_tarifa === 'bi-horario') {
+                                        $icon_html .= '<span class="inline-flex items-center justify-center w-5 h-5 bg-green-200 rounded-full text-xs font-bold text-green-800" title="Tarifa Bi-Horária">B</span>';
                                     }
 
-                                    if (isset($oferta['TipoPreco']) && strtolower($oferta['TipoPreco']) == 'indexado') {
-                                        $icon_html .= '<span class="inline-block w-4 h-4 bg-yellow-200 rounded-full ml-1" title="Tarifa Indexada"></span>';
+                                    if (isset($oferta['TipoPreco']) && strtolower($oferta['TipoPreco']) === 'indexado') {
+                                        $icon_html .= '<span class="inline-flex items-center justify-center w-5 h-5 bg-yellow-200 rounded-full ml-1 text-xs font-bold text-yellow-800" title="Tarifa Indexada">I</span>';
                                     }
 
                                 ?>

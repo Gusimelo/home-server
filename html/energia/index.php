@@ -19,53 +19,26 @@ $fuso_horario_local = new DateTimeZone('Europe/Lisbon');
 <head>
     <meta charset="UTF-8">
     <title>Dashboard Energético v4.0</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
 </head>
-<body>
-    <nav class="sidebar">
-        <h3>Navegação</h3>
-        <ul>
-            <li><a href="index.php" class="active">Dashboard</a></li>
-            <li><a href="fatura_detalhada.php">Fatura Detalhada</a></li>
-            <li><a href="ofertas.php">Comparar Ofertas</a></li>
-            <li><a href="tarifas.php">Gerir Tarifas</a></li>
-        </ul>
-        <h3>Histórico</h3>
-        <ul>
-            <li><a href="index.php" class="<?php echo $is_current_period ? 'active' : '' ?>">Período Atual</a></li>
-        </ul>
-        <?php
-            $current_year = null;
-            $meses = ["", "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
-            if (isset($periodos_historicos_result)) {
-                while ($periodo = $periodos_historicos_result->fetch_assoc()) {
-                    if ($periodo['ano'] != $current_year) {
-                        if ($current_year !== null) echo '</ul>';
-                        $current_year = $periodo['ano'];
-                        echo "<h3>{$current_year}</h3><ul>";
-                    }
-                    $is_active = (!$is_current_period && isset($ano_selecionado) && $periodo['ano'] == $ano_selecionado && $periodo['mes'] == $mes_selecionado);
-                    echo '<li><a href="?ano='.$periodo['ano'].'&mes='.$periodo['mes'].'" class="'.($is_active ? 'active' : '').'">'.$meses[$periodo['mes']].'</a></li>';
-                }
-                if ($current_year !== null) echo '</ul>';
-            }
-        ?>
-    </nav>
+<body class="bg-gray-100 font-sans flex h-screen">    
+    <?php 
+        $active_page = 'index';
+        require_once 'sidebar.php'; 
+    ?>
 
-    <main class="main-content">
-        <div class="container">
-            <h1>Dashboard Energético</h1>
-            <h2><?php echo $titulo_pagina; ?></h2>
+    <main class="flex-1 p-8 overflow-y-auto">
+        <div class="max-w-7xl mx-auto">
+            <h1 class="text-3xl font-bold text-gray-800">Dashboard Energético</h1>
+            <h2 class="text-xl text-gray-600 mb-6"><?php echo $titulo_pagina; ?></h2>
             
-            <div class="summary-grid-full">
-                <div class="summary-box">
-                    <h3>Comparativo de Fatura (€)</h3>
-                    <table>
-                        <thead>
+            <div class="bg-white rounded-lg shadow-md overflow-hidden mb-8">
+                <div class="p-6">
+                    <h3 class="text-xl font-bold mb-4">Comparativo de Fatura (€)</h3>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full text-sm">
+                            <thead class="bg-gray-100">
                             <?php
                                 // Encontra o ID da tarifa projetada mais barata
                                 $id_tarifa_mais_barata_proj = null;
@@ -80,17 +53,17 @@ $fuso_horario_local = new DateTimeZone('Europe/Lisbon');
                                 }
                             ?>
                             <tr>
-                                <th class="label-col">Componente</th>                                
+                                <th class="py-2 px-3 text-left font-semibold text-gray-600 w-1/4">Componente</th>                                
                                 <?php foreach ($tarifas as $tarifa): ?>
-                                    <th class="numeric"><?php echo htmlspecialchars($tarifa['nome_tarifa']); ?></th>
+                                    <th class="py-2 px-3 text-right font-semibold text-gray-600"><?php echo htmlspecialchars($tarifa['nome_tarifa']); ?></th>
                                 <?php endforeach; ?>
 
                                 <?php if ($is_current_period): foreach ($tarifas as $id => $tarifa): ?>
-                                    <th class="numeric proj-col"><?php echo htmlspecialchars($tarifa['nome_tarifa']); ?> (Proj.) <?php if ($id === $id_tarifa_mais_barata_proj): ?><span class="best-deal-icon" title="Opção mais económica (projetado)">⭐</span><?php endif; ?></th>
+                                    <th class="py-2 px-3 text-right font-semibold text-blue-600"><?php echo htmlspecialchars($tarifa['nome_tarifa']); ?> (Proj.) <?php if ($id === $id_tarifa_mais_barata_proj): ?><span class="text-yellow-400" title="Opção mais económica (projetado)">⭐</span><?php endif; ?></th>
                                 <?php endforeach; endif; ?>
                             </tr>
                         </thead>
-                        <tbody>
+                        <tbody class="text-gray-800">
                             <?php 
                                 $componentes = [
                                     'energia_custo_base' => 'Energia (Consumo)',
@@ -106,18 +79,19 @@ $fuso_horario_local = new DateTimeZone('Europe/Lisbon');
                                 
                                 foreach ($componentes as $key => $label):
                                     $is_total = ($key === 'total_fatura');
-                                    $row_class = $is_total ? 'total-row' : '';
+                                    $row_class = $is_total ? 'bg-gray-50' : '';
+                                    $text_class = $is_total ? 'font-bold text-base' : 'font-medium';
                             ?>
                             <tr class="<?php echo $row_class; ?>">
-                                <td class="label-col"><?php echo $label; ?></td>
+                                <td class="py-3 px-3 <?php echo $text_class; ?> text-gray-800"><?php echo $label; ?></td>
                                 <?php foreach ($tarifas as $id => $tarifa): 
                                     $fatura = $faturas_atuais[$id] ?? [];
                                     $valor = ($key === 'taxas_custo_base') 
                                         ? ($fatura['iece_custo_base'] ?? 0) + ($fatura['ts_custo_base'] ?? 0)
                                         : ($fatura[$key] ?? 0);
-                                    $cell_class = $tarifa['is_contratada'] ? ' bold-text' : '';
+                                    $cell_class = $tarifa['is_contratada'] ? 'font-bold' : '';
                                 ?>
-                                    <td class="numeric<?php echo $cell_class; ?>">&euro; <?php echo number_format($valor, 2, ',', '.'); ?></td>
+                                    <td class="py-3 px-3 text-right tabular-nums <?php echo $cell_class; ?>">&euro; <?php echo number_format($valor, 2, ',', '.'); ?></td>
                                 <?php endforeach; ?>
 
                                 <?php if ($is_current_period): foreach ($tarifas as $id => $tarifa):
@@ -125,78 +99,83 @@ $fuso_horario_local = new DateTimeZone('Europe/Lisbon');
                                     $valor_proj = ($key === 'taxas_custo_base') 
                                         ? ($fatura_proj['iece_custo_base'] ?? 0) + ($fatura_proj['ts_custo_base'] ?? 0)
                                         : ($fatura_proj[$key] ?? 0);
-                                    $cell_class_proj = $tarifa['is_contratada'] ? ' bold-text' : '';
+                                    $cell_class_proj = $tarifa['is_contratada'] ? 'font-bold' : '';
                                 ?>
-                                    <td class="numeric proj-col<?php echo $cell_class_proj; ?>">&euro; <?php echo number_format($valor_proj, 2, ',', '.'); ?></td>
+                                    <td class="py-3 px-3 text-right text-blue-600 tabular-nums <?php echo $cell_class_proj; ?>">&euro; <?php echo number_format($valor_proj, 2, ',', '.'); ?></td>
                                 <?php endforeach; endif; ?>
                             </tr>
                             <?php endforeach; ?>
                         </tbody>
                     </table>
+                    </div>
                 </div>
             </div>
 
-            <div class="summary-grid">
-                <div class="summary-box">
-                    <h3>Resumo de Consumo (kWh)</h3>
-                    <table>
-                        <thead><tr><th class="label-col">Tarifa</th><th class="numeric">Atual</th><?php if ($is_current_period): ?><th class="numeric">Projetado</th><?php endif; ?></tr></thead>
-                        <tbody>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <h3 class="text-xl font-bold mb-4">Resumo de Consumo (kWh)</h3>
+                    <table class="min-w-full text-sm">
+                        <thead class="border-b-2 border-gray-200"><tr><th class="py-2 px-3 text-left font-semibold text-gray-600">Tarifa</th><th class="py-2 px-3 text-right font-semibold text-gray-600">Atual</th><?php if ($is_current_period): ?><th class="py-2 px-3 text-right font-semibold text-blue-600">Projetado</th><?php endif; ?></tr></thead>
+                        <tbody class="text-gray-800">
                             <tr>
-                                <td class="label-col">Vazio</td>
-                                <td class="numeric"><?php echo number_format($dados_consumo_atual['consumo_vazio'] ?? 0, 1, ',', '.'); ?></td>
+                                <td class="py-3 px-3 font-medium">Vazio</td>
+                                <td class="py-3 px-3 text-right tabular-nums"><?php echo number_format($dados_consumo_atual['consumo_vazio'] ?? 0, 1, ',', '.'); ?></td>
                                 <?php if ($is_current_period): ?>
-                                    <td class="numeric proj-col"><?php echo number_format(($dados_consumo_atual['consumo_vazio'] ?? 0) + ($consumo_projetado['consumo_vazio'] ?? 0), 1, ',', '.'); ?></td>
+                                    <td class="py-3 px-3 text-right text-blue-600 tabular-nums"><?php echo number_format(($dados_consumo_atual['consumo_vazio'] ?? 0) + ($consumo_projetado['consumo_vazio'] ?? 0), 1, ',', '.'); ?></td>
                                 <?php endif; ?>
                             </tr>
                             <tr>
-                                <td class="label-col">Cheia</td>
-                                <td class="numeric"><?php echo number_format($dados_consumo_atual['consumo_cheia'] ?? 0, 1, ',', '.'); ?></td>
+                                <td class="py-3 px-3 font-medium">Cheia</td>
+                                <td class="py-3 px-3 text-right tabular-nums"><?php echo number_format($dados_consumo_atual['consumo_cheia'] ?? 0, 1, ',', '.'); ?></td>
                                 <?php if ($is_current_period): ?>
-                                    <td class="numeric proj-col"><?php echo number_format(($dados_consumo_atual['consumo_cheia'] ?? 0) + ($consumo_projetado['consumo_cheia'] ?? 0), 1, ',', '.'); ?></td>
+                                    <td class="py-3 px-3 text-right text-blue-600 tabular-nums"><?php echo number_format(($dados_consumo_atual['consumo_cheia'] ?? 0) + ($consumo_projetado['consumo_cheia'] ?? 0), 1, ',', '.'); ?></td>
                                 <?php endif; ?>
                             </tr>
                             <tr>
-                                <td class="label-col">Ponta</td>
-                                <td class="numeric"><?php echo number_format($dados_consumo_atual['consumo_ponta'] ?? 0, 1, ',', '.'); ?></td>
+                                <td class="py-3 px-3 font-medium">Ponta</td>
+                                <td class="py-3 px-3 text-right tabular-nums"><?php echo number_format($dados_consumo_atual['consumo_ponta'] ?? 0, 1, ',', '.'); ?></td>
                                 <?php if ($is_current_period): ?>
-                                    <td class="numeric proj-col"><?php echo number_format(($dados_consumo_atual['consumo_ponta'] ?? 0) + ($consumo_projetado['consumo_ponta'] ?? 0), 1, ',', '.'); ?></td>
+                                    <td class="py-3 px-3 text-right text-blue-600 tabular-nums"><?php echo number_format(($dados_consumo_atual['consumo_ponta'] ?? 0) + ($consumo_projetado['consumo_ponta'] ?? 0), 1, ',', '.'); ?></td>
                                 <?php endif; ?>
                             </tr>
-                            <tr class="total-row">
-                                <td class="label-col">Total</td>
-                                <td class="numeric"><?php echo number_format($dados_consumo_atual['total_kwh'] ?? 0, 1, ',', '.'); ?></td>
+                            <tr class="bg-gray-50">
+                                <td class="py-3 px-3 font-bold text-base">Total</td>
+                                <td class="py-3 px-3 text-right font-bold text-base tabular-nums"><?php echo number_format($dados_consumo_atual['total_kwh'] ?? 0, 1, ',', '.'); ?></td>
                                 <?php if ($is_current_period): ?>
                                     <?php
                                         // Calcula o total projetado somando as projeções parciais para garantir consistência.
                                         $total_atual = $dados_consumo_atual['total_kwh'] ?? 0;
                                         $total_futuro = ($consumo_projetado['consumo_vazio'] ?? 0) + ($consumo_projetado['consumo_cheia'] ?? 0) + ($consumo_projetado['consumo_ponta'] ?? 0);
                                     ?>
-                                    <td class="numeric proj-col"><?php echo number_format($total_atual + $total_futuro, 1, ',', '.'); ?></td>
+                                    <td class="py-3 px-3 text-right font-bold text-base text-blue-600 tabular-nums"><?php echo number_format($total_atual + $total_futuro, 1, ',', '.'); ?></td>
                                 <?php endif; ?>
                             </tr>
                         </tbody>
                     </table>
                 </div>
+                <div class="bg-white rounded-lg shadow-md p-6 flex flex-col justify-center items-center">
+                    <h3 class="text-xl font-bold mb-4">Ações Rápidas</h3>
+                    <button id="openModalButton" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg shadow-md">
+                        Ver Registos Detalhados do Período
+                    </button>
+                </div>
             </div>
 
-            <button id="openModalButton" class="main-button">Ver Registos Detalhados do Período</button>
-
-            <div class="summary-box" style="margin-top: 20px;">
-                <h3>Consumo Diário (kWh)</h3>
+            <div class="bg-white rounded-lg shadow-md p-6 mb-8">
+                <h3 class="text-xl font-bold mb-4">Consumo Diário (kWh)</h3>
                 <div id="daily-consumption-chart"></div>
             </div>
 
-            <div class="summary-box" style="margin-top: 20px;">
-                <h3>Padrões de Consumo (kWh por Hora/Dia)</h3>
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <h3 class="text-xl font-bold mb-4">Padrões de Consumo (kWh por Hora/Dia)</h3>
                 
-                <div class="chart-legend">
-                    <div class="legend-item">
-                        <span class="legend-swatch legend-vazio"></span>
+                <div class="flex justify-end gap-6 mb-[-15px] pr-5 relative z-10">
+                    <div class="flex items-center gap-2 text-xs">
+                        <span class="w-4 h-4 rounded-sm bg-blue-300"></span>
                         <span>Período Vazio</span>
                     </div>
-                    <div class="legend-item">
-                        <span class="legend-swatch legend-cheia"></span>
+                    <div class="flex items-center gap-2 text-xs">
+                        <span class="w-4 h-4 rounded-sm bg-red-300"></span>
                         <span>Período Fora de Vazio</span>
                     </div>
                 </div>
@@ -208,23 +187,25 @@ $fuso_horario_local = new DateTimeZone('Europe/Lisbon');
         </div>
     </main>
     
-    <div id="modal-registos" class="modal">
-        <div class="modal-content">
-            <span id="closeModalButton" class="close-button">&times;</span>
-            <h2>Registos do Período</h2>
-            <button id="toggleZeroButton" class="filtro-btn">Mostrar Registos a Zero</button>
-            <div class="modal-table-container">
-                <table class="registos-table">
-                    <thead>
+    <div id="modal-registos" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden items-center justify-center p-4 z-50">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-6xl max-h-[90vh] flex flex-col">
+            <div class="p-6 border-b flex justify-between items-center">
+                <h2 class="text-xl font-bold">Registos do Período</h2>
+                <button id="closeModalButton" class="text-gray-400 hover:text-gray-800 text-3xl leading-none font-bold">&times;</button>
+            </div>
+            <div class="p-6 flex-grow overflow-y-auto">
+                <button id="toggleZeroButton" class="mb-4 bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded">Mostrar Registos a Zero</button>
+                <table class="min-w-full text-sm">
+                    <thead class="bg-gray-800 text-white sticky top-0">
                         <tr>
-                            <th>Data e Hora (Local)</th>
-                            <th class="numeric">Consumo (kWh)</th>
+                            <th class="py-2 px-3 text-left">Data e Hora (Local)</th>
+                            <th class="py-2 px-3 text-right">Consumo (kWh)</th>
                             <?php foreach ($tarifas as $tarifa): ?>
-                                <th class="numeric">Custo <?php echo htmlspecialchars($tarifa['nome_tarifa']); ?></th>
+                                <th class="py-2 px-3 text-right">Custo <?php echo htmlspecialchars($tarifa['nome_tarifa']); ?></th>
                             <?php endforeach; ?>
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody class="text-gray-800">
                         <?php
                             if (isset($ultimos_registos_result)) {
                                 $ultimos_registos_result->data_seek(0); // Reset pointer
@@ -233,23 +214,23 @@ $fuso_horario_local = new DateTimeZone('Europe/Lisbon');
                                 $consumo_intervalo = $registo['consumo_vazio'] + $registo['consumo_cheia'] + $registo['consumo_ponta'];
                                 $classe_linha = ($consumo_intervalo < 0.00001) ? 'linha-zero linha-escondida' : '';
                         ?>
-                                <tr class="<?php echo $classe_linha; ?>">
-                                    <td><?php
+                                <tr class="border-b border-gray-200 hover:bg-gray-100 <?php echo $classe_linha; ?>">
+                                    <td class="py-2 px-3"><?php
                                         $data_obj = new DateTime($registo['data_hora'], new DateTimeZone('UTC'));
                                         $data_obj->setTimezone($fuso_horario_local);
                                         echo $data_obj->format('d/m/Y H:i:s');
                                     ?></td>
-                                    <td class="numeric"><?php echo number_format($consumo_intervalo, 5, ',', '.'); ?></td>
+                                    <td class="py-2 px-3 text-right tabular-nums"><?php echo number_format($consumo_intervalo, 5, ',', '.'); ?></td>
                                     <?php foreach ($tarifas as $id => $tarifa): ?>
                                         <?php
                                             $custo_leitura = 0;
                                             if ($tarifa['modalidade'] === 'simples') {
                                                 $custo_leitura = $consumo_intervalo * $tarifa['preco_simples'];
-                                            } elseif ($tarifa['modalidade'] === 'bi-horario') {
+                                            } elseif ($tarifa['modalidade'] !== 'simples' && $tarifa['modalidade'] !== 'dinamico') {
                                                 $custo_leitura = ($registo['consumo_vazio'] * $tarifa['preco_vazio']) + ($registo['consumo_cheia'] * $tarifa['preco_cheia']) + ($registo['consumo_ponta'] * $tarifa['preco_ponta']);
                                             }
                                         ?>
-                                        <td class="numeric"><?php echo number_format($custo_leitura, 5, ',', '.'); ?></td>
+                                        <td class="py-2 px-3 text-right tabular-nums"><?php echo number_format($custo_leitura, 5, ',', '.'); ?></td>
                                     <?php endforeach; ?>
                                 </tr>
                         <?php
@@ -266,17 +247,17 @@ $fuso_horario_local = new DateTimeZone('Europe/Lisbon');
     document.addEventListener('DOMContentLoaded', function() {
         // Lógica do Modal e Botão de Filtro
         const modal = document.getElementById('modal-registos');
-        const openBtn = document.getElementById('openModalButton');
-        const closeBtn = document.getElementById('closeModalButton');
-        if(openBtn) { openBtn.onclick = function() { modal.style.display = "block"; } }
-        if(closeBtn) { closeBtn.onclick = function() { modal.style.display = "none"; } }
-        window.onclick = function(event) { if (event.target == modal) { modal.style.display = "none"; } }
+        const openBtn = document.getElementById('openModalButton'); // ok
+        const closeBtn = document.getElementById('closeModalButton'); // ok
+        if(openBtn) { openBtn.onclick = function() { modal.classList.remove('hidden'); modal.classList.add('flex'); } }
+        if(closeBtn) { closeBtn.onclick = function() { modal.classList.add('hidden'); modal.classList.remove('flex'); } }
+        window.onclick = function(event) { if (event.target == modal) { modal.classList.add('hidden'); modal.classList.remove('flex'); } }
         const toggleButton = document.getElementById('toggleZeroButton');
         if (toggleButton) {
             let zerosEstaoVisiveis = false;
             toggleButton.addEventListener('click', function() {
                 zerosEstaoVisiveis = !zerosEstaoVisiveis;
-                document.querySelectorAll('tr.linha-zero').forEach(row => row.classList.toggle('linha-escondida'));
+                document.querySelectorAll('tr.linha-zero').forEach(row => row.classList.toggle('hidden'));
                 toggleButton.textContent = zerosEstaoVisiveis ? 'Ocultar Registos a Zero' : 'Mostrar Registos a Zero';
             });
         }
@@ -312,12 +293,12 @@ $fuso_horario_local = new DateTimeZone('Europe/Lisbon');
                                     from: 0.0,
                                     to: 0.5,
                                     name: 'baixo',
-                                    color: '#85C1E9' // Azul Pastel
+                                color: '#aed6f1' // Azul Pastel mais claro
                                 }, {
                                     from: 0.5,
                                     to: 5.0, // Um valor alto para abranger picos
                                     name: 'alto',
-                                    color: '#E74C3C' // Vermelho
+                                color: '#f5b7b1' // Vermelho Pastel
                                 }]
                             }
                         } 
@@ -347,13 +328,13 @@ $fuso_horario_local = new DateTimeZone('Europe/Lisbon');
                 const estiloLabelBase = { orientation: 'horizontal', style: { fontSize: '11px', padding: { left: 5, right: 5, top: 2, bottom: 2 } } };
                 
                 const estiloCheia = {
-                    linha: { ...estiloLinha, borderColor: '#F1948A' }, // Vermelho Pastel
-                    label: { ...estiloLabelBase, borderColor: '#F1948A', style: { ...estiloLabelBase.style, color: '#fff', background: '#F1948A' } }
+                    linha: { ...estiloLinha, borderColor: '#f5b7b1' }, // Vermelho Pastel
+                    label: { ...estiloLabelBase, borderColor: '#f5b7b1', style: { ...estiloLabelBase.style, color: '#fff', background: '#f5b7b1' } }
                 };
 
                 const estiloVazio = {
-                    linha: { ...estiloLinha, borderColor: '#85C1E9' }, // Azul Pastel
-                    label: { ...estiloLabelBase, borderColor: '#85C1E9', style: { ...estiloLabelBase.style, color: '#fff', background: '#85C1E9' } }
+                    linha: { ...estiloLinha, borderColor: '#aed6f1' }, // Azul Pastel
+                    label: { ...estiloLabelBase, borderColor: '#aed6f1', style: { ...estiloLabelBase.style, color: '#fff', background: '#aed6f1' } }
                 };
 
                 // --- GRÁFICO 1: DIAS DE SEMANA ---

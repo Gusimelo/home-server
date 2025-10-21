@@ -35,29 +35,10 @@ $componentes = [
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-100 font-sans flex">
-
-    <!-- Barra de Navegação Lateral -->
-    <nav class="w-64 bg-white shadow-md p-4">
-        <h3 class="text-lg font-bold mb-4">Navegação</h3>
-        <ul>
-            <li class="mb-2"><a href="index.php" class="text-gray-700 hover:text-blue-500">Dashboard</a></li>
-            <li class="mb-2"><a href="fatura_detalhada.php" class="text-blue-500 font-bold">Fatura Detalhada</a></li>
-            <li class="mb-2"><a href="ofertas.php" class="text-gray-700 hover:text-blue-500">Comparar Ofertas</a></li>
-            <li class="mb-2"><a href="tarifas.php" class="text-gray-700 hover:text-blue-500">Gerir Tarifas</a></li>
-        </ul>
-        <?php
-            // A lógica para o histórico já não é necessária aqui, pois os dados vêm de obterDadosFaturaDetalhada
-            // e não de obterDadosDashboard como nas outras páginas.
-            // A navegação do histórico será adicionada abaixo se for necessário.
-            // Por agora, vamos manter o código limpo e focado no que já existe.
-            
-            // Se quiser adicionar o histórico de períodos, pode usar um loop semelhante ao de 'ofertas.php'
-            // mas precisaria de uma query para buscar os períodos disponíveis, como:
-            // $periodos_historicos_result = $mysqli->query("SELECT DISTINCT YEAR(data_hora) as ano, MONTH(data_hora) as mes FROM leituras_energia ORDER BY ano DESC, mes DESC");
-            // E depois iterar sobre $periodos_historicos_result.
-            // Por agora, esta secção fica omitida para manter a simplicidade e corresponder ao pedido.
-        ?>
-    </nav>
+    <?php 
+        $active_page = 'fatura_detalhada';
+        require_once 'sidebar.php'; 
+    ?>
 
     <!-- Conteúdo Principal -->
     <main class="flex-grow p-8 overflow-y-auto">
