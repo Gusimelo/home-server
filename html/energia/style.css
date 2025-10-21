@@ -1,0 +1,290 @@
+/* Ficheiro: style.css (v4.0) */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap');
+
+body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    display: flex;
+    margin: 0;
+    background-color: #f4f7f6;
+    color: #333;
+}
+.sidebar { 
+    width: 250px; 
+    background-color: #343a40; 
+    color: #fff; 
+    padding: 20px; 
+    height: 100vh; 
+    overflow-y: auto; 
+    flex-shrink: 0; 
+}
+.sidebar h3 { 
+    color: #f8f9fa; 
+    border-bottom: 1px solid #495057; 
+    padding-bottom: 10px; 
+}
+.sidebar ul { 
+    list-style: none; 
+    padding: 0; 
+    margin-top: 10px; 
+}
+.sidebar li a { 
+    color: #adb5bd; 
+    text-decoration: none; 
+    display: block; 
+    padding: 8px 10px; 
+    border-radius: 4px; 
+}
+.sidebar li a:hover, .sidebar li a.active { 
+    color: #fff; 
+    background-color: #495057; 
+}
+.main-content { 
+    flex-grow: 1; 
+    padding: 20px; 
+    height: 100vh; 
+    overflow-y: auto; 
+}
+.container { 
+    max-width: 1100px; 
+    margin: auto; 
+}
+.summary-grid { 
+    display: grid; 
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px; 
+}
+.summary-grid-full {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 20px;
+    margin-bottom: 20px; /* Add some space below the full-width grid */
+}
+.summary-box { 
+    background-color: #fff; 
+    border: 1px solid #ddd; 
+    border-radius: 8px; 
+    padding: 20px; 
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05); 
+    display: flex; 
+    flex-direction: column;
+}
+.summary-box h3 { 
+    margin-top: 0; 
+    border-bottom: 1px solid #eee; 
+    padding-bottom: 10px; 
+}
+.summary-box table { 
+    width: 100%; 
+    flex-grow: 1;
+    border-collapse: collapse;
+}
+.summary-box th {
+    font-weight: 700;
+    color: #666;
+    padding-bottom: 5px;
+    border-bottom: 2px solid #eee;
+}
+.summary-box th, .summary-box td {
+    text-align: left;
+    padding: 6px 8px; /* Adjusted padding for better spacing in wider table */
+    border: none;
+    border-bottom: 1px solid #d1d5db; /* Cinzento mais visível */
+}
+.summary-box th.numeric, .summary-box td.numeric {
+    text-align: right;
+}
+.summary-box tr:last-child td {
+    border-bottom: none;
+}
+.summary-box .total-row td { 
+    border-top: 2px solid #ccc; 
+    padding-top: 8px; 
+    font-size: 1.1em; 
+}
+.summary-box td.bold-text {
+    font-weight: bold;
+}
+.summary-box .label-col {
+    font-weight: 700;
+    color: #333;
+    width: 25%; /* Give more space to the label column */
+}
+.summary-box .proj-col {
+    color: #007bff;
+}
+.best-deal-icon {
+    color: #ffc107; /* Cor de ouro/amarelo */
+    font-size: 1.1em;
+    cursor: help; /* Mostra um ponto de interrogação ao passar o rato */
+}
+h1, h2 { 
+    color: #333; 
+    font-weight: 700; 
+}
+h2 { 
+    font-weight: 400; 
+}
+.registos-table { 
+    width: 100%; 
+    border-collapse: collapse; 
+    margin-top: 10px; 
+    background-color: #fff; 
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05); 
+}
+.registos-table th, .registos-table td { 
+    border: 1px solid #ddd; 
+    padding: 10px 12px; 
+}
+.registos-table td.numeric, .registos-table th.numeric { 
+    text-align: right; 
+}
+.registos-table th { 
+    background-color: #e9ecef; 
+    font-weight: 700; 
+    text-align: left; 
+}
+tbody tr:nth-child(odd) { 
+    background-color: #f8f9fa; 
+}
+.filtro-btn, .main-button {
+    margin-top: 20px;
+    margin-bottom: 10px;
+    padding: 10px 15px;
+    border: 1px solid #ccc;
+    background-color: #fff;
+    border-radius: 5px;
+    cursor: pointer;
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+}
+.filtro-btn:hover, .main-button:hover {
+    background-color: #e9ecef;
+}
+.linha-escondida {
+    display: none;
+}
+.modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.6); }
+.modal-content { background-color: #fefefe; margin: 5% auto; padding: 20px 30px; border: 1px solid #888; width: 80%; max-width: 900px; border-radius: 8px; box-shadow: 0 5px 15px rgba(0,0,0,0.3); position: relative; }
+.close-button { color: #aaa; position: absolute; top: 10px; right: 20px; font-size: 28px; font-weight: bold; }
+.close-button:hover, .close-button:focus { color: black; text-decoration: none; cursor: pointer; }
+.modal-table-container { max-height: 60vh; overflow-y: auto; margin-top: 20px; }
+
+/* --- ESTILOS PARA A LEGENDA DO GRÁFICO (v3.2) --- */
+.chart-legend {
+    display: flex;
+    justify-content: flex-end;
+    gap: 20px;
+    margin-bottom: -15px;
+    padding-right: 20px;
+    position: relative;
+    z-index: 10;
+}
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+}
+.legend-swatch {
+    width: 15px;
+    height: 15px;
+    border-radius: 3px;
+}
+.legend-vazio {
+    background-color: #85C1E9; /* Azul Pastel */
+}
+.legend-cheia {
+    background-color: #F1948A; /* Vermelho Pastel */
+}
+
+/* --- ESTILOS PARA O COMPARADOR DE OFERTAS (v4.1) --- */
+.indicator-col {
+    width: 80px; /* Aumentar para caber múltiplos indicadores */
+    text-align: left;
+}
+
+.indicator-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    color: white;
+    font-weight: bold;
+    font-size: 14px;
+    margin-right: 4px;
+    vertical-align: middle;
+}
+
+.indicator-simples {
+    background-color: #3498db; /* Azul */
+}
+
+.indicator-bihorario {
+    background-color: #2ecc71; /* Verde */
+}
+
+.indicator-indexado {
+    background-color: #9b59b6; /* Roxo */
+}
+
+.legend {
+    display: flex;
+    gap: 20px;
+    margin: 15px 0;
+    font-size: 14px;
+}
+
+.legend .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.oferta-atual td {
+    background-color: #fff3cd; /* Amarelo claro para destaque */
+    font-weight: bold;
+}
+
+/* Estilo para o indicador da oferta atual na legenda (se necessário) */
+.indicator-atual {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border-radius: 3px;
+    background-color: #fff3cd;
+    border: 1px solid #ffeeba;
+}
+
+/* --- ESTILOS PARA FATURA DETALHADA (v5.1) --- */
+.linha-real, tbody tr.linha-real:nth-child(odd) {
+    background-color: #e6ffed; /* Verde Pastel */
+}
+
+.linha-projetada, tbody tr.linha-projetada:nth-child(odd) {
+    background-color: #e6f7ff; /* Azul Pastel */
+}
+
+/* Legenda para a tabela de fatura detalhada */
+.fatura-legenda {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 10px;
+    justify-content: flex-end;
+}
+
+.legenda-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+}
+
+.legenda-cor {
+    width: 15px;
+    height: 15px;
+    border-radius: 3px;
+    border: 1px solid #ccc;
+}
