@@ -320,6 +320,22 @@ $tarifas_result = $mysqli->query("SELECT * FROM tarifas ORDER BY data_inicio DES
                 closeModal();
             }
         });
+
+        // Verifica se há dados de uma oferta na URL para pré-preencher o formulário
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.has('add_from_offer[nome]')) {
+            resetForm(); // Garante que o formulário está limpo
+
+            form['nome_tarifa'].value = urlParams.get('add_from_offer[nome]');
+            form['modalidade'].value = urlParams.get('add_from_offer[modalidade]');
+            form['custo_potencia_diario'].value = urlParams.get('add_from_offer[potencia]');
+            form['preco_simples'].value = urlParams.get('add_from_offer[simples]');
+            form['preco_vazio'].value = urlParams.get('add_from_offer[vazio]');
+            form['preco_cheia'].value = urlParams.get('add_from_offer[cheia]');
+            form['preco_ponta'].value = urlParams.get('add_from_offer[ponta]');
+            
+            openModal();
+        }
     });
     </script>
 </body>

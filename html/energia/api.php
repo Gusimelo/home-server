@@ -43,8 +43,8 @@ $data_fim_query = $is_current_period ? date('Y-m-d') : $data_fim_periodo->format
 
 if ($sensor_pedido === 'heatmap') {
     $sql = "SELECT
-                WEEKDAY(DATE_SUB(data_hora, INTERVAL 15 DAY)) as dia_semana,
-                HOUR(DATE_SUB(data_hora, INTERVAL 15 DAY)) as hora,
+                WEEKDAY(data_hora) as dia_semana,
+                HOUR(data_hora) as hora,
                 SUM(consumo_vazio + consumo_cheia + consumo_ponta) / COUNT(DISTINCT DATE(data_hora)) as consumo_medio,
                 MAX(data_hora) as data_exemplo
             FROM leituras_energia

@@ -251,7 +251,7 @@ $ofertas_paginadas = array_slice($ofertas, $offset, $per_page);
                                     <th class="py-3 px-4 text-right">Preço Simples (€/kWh)</th>
                                     <th class="py-3 px-4 text-right">Preço Fora Vazio (€/kWh)</th>
                                     <th class="py-3 px-4 text-right">Preço Vazio (€/kWh)</th>
-                                    <th class="py-3 px-4 text-left whitespace-nowrap"></th>
+                                    <th class="py-3 px-4 text-left whitespace-nowrap">Ações</th>
                                 </tr>
                             </thead>
                             <tbody class="text-gray-700">
@@ -301,6 +301,21 @@ $ofertas_paginadas = array_slice($ofertas, $offset, $per_page);
                                             <?php if (!empty($oferta['LinkFichaPadrao'])): ?>
                                                 <a href="<?php echo htmlspecialchars($oferta['LinkFichaPadrao']); ?>" target="_blank" class="text-blue-500 hover:text-blue-700"><i class="fas fa-file-alt"></i></a>
                                             <?php endif; ?>
+                                            <?php
+                                                // Preparar dados para o link de adição
+                                                $dados_tarifa_link = [
+                                                    'nome' => ($oferta['Comercializador'] ?? '') . ' - ' . ($oferta['NomeProposta'] ?? ''),
+                                                    'modalidade' => strtolower($oferta['TipoTarifa'] ?? ''),
+                                                    'potencia' => $oferta['TermoFixoDiario'] ?? 0,
+                                                    'simples' => (strtolower($oferta['TipoTarifa'] ?? '') == 'simples') ? ($oferta['PrecoForaVazio'] ?? 0) : 0,
+                                                    'vazio' => (strtolower($oferta['TipoTarifa'] ?? '') == 'bi-horario') ? ($oferta['PrecoVazio'] ?? 0) : 0,
+                                                    'cheia' => (strtolower($oferta['TipoTarifa'] ?? '') == 'bi-horario') ? ($oferta['PrecoForaVazio'] ?? 0) : 0,
+                                                    'ponta' => 0 // ERSE não distingue ponta de cheia
+                                                ];
+                                                $query_string = http_build_query(['add_from_offer' => $dados_tarifa_link]);
+                                            ?>
+                                            <a href="tarifas.php?<?php echo $query_string; ?>" title="Adicionar esta oferta às minhas tarifas para comparação"
+                                               class="text-green-500 hover:text-green-700 ml-2"><i class="fas fa-plus-circle"></i></a>
                                         </td>
                                     </tr>
                                 <?php endforeach; ?>
