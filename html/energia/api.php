@@ -171,6 +171,38 @@ if ($sensor_pedido === 'heatmap') {
             }
             break;
         
+        case 'monthly_history':
+            $result = $mysqli->query("
+                SELECT 
+                    YEAR(DATE_SUB(data_hora, INTERVAL 15 DAY)) as ano_ciclo, 
+                    MONTH(DATE_SUB(data_hora, INTERVAL 15 DAY)) as mes_ciclo,
+                    SUM(consumo_vazio) as consumo_vazio,
+                    SUM(consumo_cheia + consumo_ponta) as consumo_fora_vazio
+                FROM leituras_energia 
+                GROUP BY ano_ciclo, mes_ciclo 
+                ORDER BY ano_ciclo DESC, mes_ciclo DESC 
+                LIMIT 12
+            ");
+
+            $data = [];
+            while ($row = $result->fetch_assoc()) { $data[] = $row; }
+            $data = array_reverse($data); // Inverter para mostrar do mais antigo para o mais recente
+
+            $categories = [];
+            $series_vazio = [];
+            $series_fora_vazio = [];
+            $meses_abrev = ["", "Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
+
+            foreach ($data as $row) {
+                $categories[] = $meses_abrev[$row['mes_ciclo']] . '/' . substr($row['ano_ciclo'], -2);
+                $series_vazio[] = round($row['consumo_vazio'] ?? 0);
+                $series_fora_vazio[] = round($row['consumo_fora_vazio'] ?? 0);
+            }
+
+            $output = ['categories' => $categories, 'series' => [['name' => 'Fora de Vazio', 'data' => $series_fora_vazio], ['name' => 'Vazio', 'data' => $series_vazio]]];
+            break;
+
+        
         default:
             $output['error'] = 'Sensor desconhecido: ' . htmlspecialchars($sensor_pedido);
             http_response_code(400);

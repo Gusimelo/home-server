@@ -153,11 +153,9 @@ $fuso_horario_local = new DateTimeZone('Europe/Lisbon');
                         </tbody>
                     </table>
                 </div>
-                <div class="bg-white rounded-lg shadow-md p-6 flex flex-col justify-center items-center">
-                    <h3 class="text-xl font-bold mb-4">Ações Rápidas</h3>
-                    <button id="openModalButton" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg shadow-md">
-                        Ver Registos Detalhados do Período
-                    </button>
+                <div class="bg-white rounded-lg shadow-md p-6">
+                    <h3 class="text-xl font-bold mb-4">Consumo dos Últimos 12 Períodos (kWh)</h3>
+                    <div id="monthly-history-chart"></div>
                 </div>
             </div>
 
@@ -183,6 +181,12 @@ $fuso_horario_local = new DateTimeZone('Europe/Lisbon');
                 <div id="heatmap-weekday" style="margin-top: 20px;"></div>
                 <div id="heatmap-saturday" style="margin-top: 20px;"></div>
                 <div id="heatmap-sunday" style="margin-top: 20px;"></div>
+            </div>
+
+            <div class="mt-8 text-center">
+                <button id="openModalButton" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg shadow-md">
+                    Ver Registos Detalhados do Período
+                </button>
             </div>
         </div>
     </main>
@@ -418,6 +422,43 @@ $fuso_horario_local = new DateTimeZone('Europe/Lisbon');
                 console.error('Erro ao carregar dados para o gráfico de consumo diário:', error);
                 const dailyChartEl = document.querySelector("#daily-consumption-chart");
                 if(dailyChartEl) dailyChartEl.innerHTML = "<p style='text-align:center; padding: 20px;'>Erro ao carregar dados.</p>";
+            });
+
+        // NOVO GRÁFICO: Histórico de Consumo Mensal
+        fetch('api.php?data=monthly_history')
+            .then(response => response.json())
+            .then(data => {
+                const historyChartEl = document.querySelector("#monthly-history-chart");
+                if (historyChartEl && data.series && data.categories && data.series[0].data.length > 0) {
+                    var options = {
+                        series: data.series,
+                        chart: {
+                            type: 'bar',
+                            height: 250,
+                            stacked: true,
+                            toolbar: { show: false }
+                        },
+                        plotOptions: { bar: { horizontal: false, columnWidth: '60%' } },
+                        dataLabels: { enabled: false },
+                        stroke: { width: 1, colors: ['#fff'] },
+                        xaxis: {
+                            categories: data.categories,
+                            labels: { rotate: -45, style: { fontSize: '10px' } }
+                        },
+                        yaxis: { title: { text: 'Consumo (kWh)' } },
+                        colors: ['#F59E0B', '#3B82F6'], // Amarelo/Laranja para Fora de Vazio, Azul para Vazio
+                        legend: { position: 'top', horizontalAlign: 'right' },
+                        tooltip: { y: { formatter: (val) => val.toFixed(0) + " kWh" } }
+                    };
+                    new ApexCharts(historyChartEl, options).render();
+                } else if (historyChartEl) {
+                    historyChartEl.innerHTML = "<p style='text-align:center; padding: 20px;'>Sem dados para o histórico de consumo.</p>";
+                }
+            })
+            .catch(error => {
+                console.error('Erro ao carregar dados para o histórico mensal:', error);
+                const historyChartEl = document.querySelector("#monthly-history-chart");
+                if(historyChartEl) historyChartEl.innerHTML = "<p style='text-align:center; padding: 20px;'>Erro ao carregar dados.</p>";
             });
     });
     </script>
