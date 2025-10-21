@@ -43,8 +43,8 @@ $data_fim_query = $is_current_period ? date('Y-m-d') : $data_fim_periodo->format
 
 if ($sensor_pedido === 'heatmap') {
     $sql = "SELECT
-                WEEKDAY(data_hora) as dia_semana,
-                HOUR(data_hora) as hora,
+                WEEKDAY(DATE_SUB(data_hora, INTERVAL 15 DAY)) as dia_semana,
+                HOUR(DATE_SUB(data_hora, INTERVAL 15 DAY)) as hora,
                 SUM(consumo_vazio + consumo_cheia + consumo_ponta) / COUNT(DISTINCT DATE(data_hora)) as consumo_medio,
                 MAX(data_hora) as data_exemplo
             FROM leituras_energia
@@ -87,14 +87,15 @@ if ($sensor_pedido === 'heatmap') {
     switch ($sensor_pedido) {
         case 'consumo_diario':
             $sql = "SELECT
-                        DATE_FORMAT(data_hora, '%Y-%m-%d') as dia,
+                        DATE(DATE_SUB(data_hora, INTERVAL 15 DAY)) as dia_ciclo,
+                        MIN(DATE(data_hora)) as dia_real,
                         SUM(consumo_vazio) as consumo_vazio,
                         SUM(consumo_cheia) as consumo_cheia,
                         SUM(consumo_ponta) as consumo_ponta
                     FROM leituras_energia
                     WHERE DATE(data_hora) BETWEEN ? AND ?
-                    GROUP BY dia
-                    ORDER BY dia ASC";
+                    GROUP BY dia_ciclo
+                    ORDER BY dia_ciclo ASC";
             
             $stmt = $mysqli->prepare($sql);
             $stmt->bind_param("ss", $data_inicio_str, $data_fim_query);
@@ -109,7 +110,7 @@ if ($sensor_pedido === 'heatmap') {
             $categories = [];
 
             while ($row = $result->fetch_assoc()) {
-                $categories[] = (new DateTime($row['dia']))->format('d/m');
+                $categories[] = (new DateTime($row['dia_real']))->format('d/m');
                 $series[0]['data'][] = round($row['consumo_vazio'], 1);
                 $series[1]['data'][] = round($row['consumo_cheia'], 1);
                 $series[2]['data'][] = round($row['consumo_ponta'], 1);
