@@ -60,14 +60,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $p_simples = (float)$_POST['preco_simples'];
         $data_inicio = $_POST['data_inicio'];
         $data_fim = empty($_POST['data_fim']) ? null : $_POST['data_fim'];
+        // Novos campos para tarifas dinâmicas
+        $formula_id = ($modalidade === 'dinamico' && !empty($_POST['formula_id'])) ? (int)$_POST['formula_id'] : null;
+        $ciclo_horario = ($modalidade === 'dinamico' && !empty($_POST['ciclo_horario'])) ? $_POST['ciclo_horario'] : null;
 
         if ($tarifa_id > 0) { // Editar
-            $stmt = $mysqli->prepare("UPDATE tarifas SET nome_tarifa=?, modalidade=?, preco_vazio=?, preco_cheia=?, preco_ponta=?, preco_simples=?, custo_potencia_diario=?, data_inicio=?, data_fim=? WHERE id=?");
-            $stmt->bind_param("ssdddddssi", $nome, $modalidade, $p_vazio, $p_cheia, $p_ponta, $p_simples, $potencia, $data_inicio, $data_fim, $tarifa_id);
+            $stmt = $mysqli->prepare("UPDATE tarifas SET nome_tarifa=?, modalidade=?, formula_id=?, ciclo_horario=?, preco_vazio=?, preco_cheia=?, preco_ponta=?, preco_simples=?, custo_potencia_diario=?, data_inicio=?, data_fim=? WHERE id=?");
+            $stmt->bind_param("ssisdddddssi", $nome, $modalidade, $formula_id, $ciclo_horario, $p_vazio, $p_cheia, $p_ponta, $p_simples, $potencia, $data_inicio, $data_fim, $tarifa_id);
             $mensagem = "Tarifa atualizada com sucesso.";
         } else { // Adicionar
-            $stmt = $mysqli->prepare("INSERT INTO tarifas (nome_tarifa, modalidade, preco_vazio, preco_cheia, preco_ponta, preco_simples, custo_potencia_diario, data_inicio, data_fim) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
-            $stmt->bind_param("ssdddddss", $nome, $modalidade, $p_vazio, $p_cheia, $p_ponta, $p_simples, $potencia, $data_inicio, $data_fim);
+            $stmt = $mysqli->prepare("INSERT INTO tarifas (nome_tarifa, modalidade, formula_id, ciclo_horario, preco_vazio, preco_cheia, preco_ponta, preco_simples, custo_potencia_diario, data_inicio, data_fim) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
+            $stmt->bind_param("ssisdddddss", $nome, $modalidade, $formula_id, $ciclo_horario, $p_vazio, $p_cheia, $p_ponta, $p_simples, $potencia, $data_inicio, $data_fim);
             $mensagem = "Nova tarifa adicionada com sucesso.";
         }
         $stmt->execute();
@@ -79,7 +82,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-$tarifas_result = $mysqli->query("SELECT * FROM tarifas ORDER BY data_inicio DESC, nome_tarifa ASC");
+$tarifas_result = $mysqli->query("SELECT t.*, f.nome_formula FROM tarifas t LEFT JOIN formulas_dinamicas f ON t.formula_id = f.id ORDER BY t.data_inicio DESC, t.nome_tarifa ASC");
+$formulas_disponiveis = [];
+$formulas_result = $mysqli->query("SELECT id, nome_formula, data_inicio, data_fim FROM formulas_dinamicas ORDER BY nome_formula ASC");
+if ($formulas_result) { // Adiciona verificação para evitar erro fatal se a tabela não existir
+    while($f = $formulas_result->fetch_assoc()) { $formulas_disponiveis[] = $f; }
+}
 
 ?>
 <!DOCTYPE html>
@@ -88,14 +96,15 @@ $tarifas_result = $mysqli->query("SELECT * FROM tarifas ORDER BY data_inicio DES
     <meta charset="UTF-8">
     <title>Gestão de Tarifas</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="style.css">
 </head>
-<body class="bg-gray-100 font-sans flex">    
+<body class="bg-gray-100 font-sans flex h-screen">    
     <?php 
         $active_page = 'tarifas';
         require_once 'sidebar.php'; 
     ?>
 
-    <main class="flex-1 p-8">
+    <main id="main-content" class="flex-1 p-8 overflow-y-auto">
         <div class="container mx-auto">
             <h1 class="text-3xl font-bold mb-2">Gestão de Tarifas</h1>
             <p class="text-gray-600 mb-6">Defina qual a sua tarifa contratada e quais as tarifas que pretende usar para comparação no dashboard.</p>
@@ -129,7 +138,13 @@ $tarifas_result = $mysqli->query("SELECT * FROM tarifas ORDER BY data_inicio DES
                             <tr class="border-b border-gray-200 hover:bg-gray-100">
                                 <td class="py-3 px-4"><?php echo $tarifa['id']; ?></td>
                                 <td class="py-3 px-4"><?php echo htmlspecialchars($tarifa['nome_tarifa']); ?></td>
-                                <td class="py-3 px-4"><?php echo htmlspecialchars($tarifa['modalidade']); ?></td>
+                                <td class="py-3 px-4">
+                                    <span class="capitalize"><?php echo htmlspecialchars($tarifa['modalidade']); ?></span>
+                                    <?php if ($tarifa['modalidade'] === 'dinamico'): ?>
+                                        <div class="text-xs text-gray-500">Fórmula: <?php echo htmlspecialchars($tarifa['nome_formula'] ?? 'N/A'); ?></div>
+                                        <div class="text-xs text-gray-500">Ciclo: <?php echo htmlspecialchars($tarifa['ciclo_horario'] ?? 'N/A'); ?></div>
+                                    <?php endif; ?>
+                                </td>
                                 <td class="py-3 px-4">
                                     <?php if ($tarifa['is_contratada']): ?>
                                         <span class="bg-green-500 text-white text-xs font-semibold mr-2 px-2.5 py-0.5 rounded-full">Contratada</span>
@@ -173,10 +188,13 @@ $tarifas_result = $mysqli->query("SELECT * FROM tarifas ORDER BY data_inicio DES
                 </div>
             </div>
 
-            <div class="mt-8 text-right">
+            <div class="mt-8 flex justify-end gap-4">
                 <button id="add-tarifa-btn" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg shadow">
                     Adicionar Nova Tarifa
                 </button>
+                <a href="formulas.php" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg shadow">
+                    Gerir Fórmulas de Cálculo
+                </a>
             </div>
 
         </div>
@@ -205,6 +223,28 @@ $tarifas_result = $mysqli->query("SELECT * FROM tarifas ORDER BY data_inicio DES
                         <option value="dinamico">Dinâmico</option>
                     </select>
                 </div>
+
+                <!-- Campos específicos para tarifa dinâmica -->
+                <div id="dinamico-fields" class="hidden bg-indigo-50 p-4 rounded-lg mb-4">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label for="form-formula-id" class="block text-sm font-medium text-gray-700">Fórmula de Cálculo</label>
+                            <select id="form-formula-id" name="formula_id" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
+                                <?php foreach($formulas_disponiveis as $formula): ?>
+                                    <option value="<?php echo $formula['id']; ?>"><?php echo htmlspecialchars($formula['nome_formula']); ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="form-ciclo-horario" class="block text-sm font-medium text-gray-700">Ciclo Horário a Aplicar</label>
+                            <select id="form-ciclo-horario" name="ciclo_horario" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
+                                <option value="simples">Simples</option>
+                                <option value="bi-horario">Bi-Horário</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
                     <div>
                         <label for="form-data-inicio" class="block text-sm font-medium text-gray-700">Data de Início</label>
@@ -216,33 +256,37 @@ $tarifas_result = $mysqli->query("SELECT * FROM tarifas ORDER BY data_inicio DES
                     </div>
                 </div>
                 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
-                    <div>
-                        <div class="mb-4">
-                            <label for="form-potencia" class="block text-sm font-medium text-gray-700">Custo Potência (€/dia)</label>
-                            <input type="text" id="form-potencia" name="custo_potencia_diario" required value="0.0" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
-                        </div>
+                <div class="mb-4">
+                    <label for="form-potencia" class="block text-sm font-medium text-gray-700">Custo Potência (€/dia)</label>
+                    <input type="text" id="form-potencia" name="custo_potencia_diario" required value="0.0" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
+                </div>
+
+                <!-- Campos para tarifas fixas -->
+                <div id="fixo-fields">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
                         <div>
-                            <label for="form-simples" class="block text-sm font-medium text-gray-700">Preço Simples (€/kWh)</label>
-                            <input type="text" id="form-simples" name="preco_simples" value="0.0" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
+                            <div id="simples-wrapper">
+                                <label for="form-simples" class="block text-sm font-medium text-gray-700">Preço Simples (€/kWh)</label>
+                                <input type="text" id="form-simples" name="preco_simples" value="0.0" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
+                            </div>
                         </div>
-                    </div>
-                    <div>
-                        <div class="mb-4">
-                            <label for="form-vazio" class="block text-sm font-medium text-gray-700">Preço Vazio (€/kWh)</label>
-                            <input type="text" id="form-vazio" name="preco_vazio" value="0.0" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
-                        </div>
-                        <div class="mb-4">
-                            <label for="form-cheia" class="block text-sm font-medium text-gray-700">Preço Cheia (€/kWh)</label>
-                            <input type="text" id="form-cheia" name="preco_cheia" value="0.0" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
-                        </div>
-                        <div>
-                            <label for="form-ponta" class="block text-sm font-medium text-gray-700">Preço Ponta (€/kWh)</label>
-                            <input type="text" id="form-ponta" name="preco_ponta" value="0.0" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
+                        <div id="bihorario-wrapper">
+                            <div class="mb-4">
+                                <label for="form-vazio" class="block text-sm font-medium text-gray-700">Preço Vazio (€/kWh)</label>
+                                <input type="text" id="form-vazio" name="preco_vazio" value="0.0" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
+                            </div>
+                            <div class="mb-4">
+                                <label for="form-cheia" class="block text-sm font-medium text-gray-700">Preço Cheia (€/kWh)</label>
+                                <input type="text" id="form-cheia" name="preco_cheia" value="0.0" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
+                            </div>
+                            <div>
+                                <label for="form-ponta" class="block text-sm font-medium text-gray-700">Preço Ponta (€/kWh)</label>
+                                <input type="text" id="form-ponta" name="preco_ponta" value="0.0" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm">
+                            </div>
                         </div>
                     </div>
                 </div>
-                <p class="px-6 text-sm text-gray-600">Nota: Para tarifas dinâmicas, os preços de energia (kWh) são ignorados pois vêm do Home Assistant, mas o custo de potência é utilizado.</p>
+                <p id="nota-dinamico" class="px-6 text-sm text-gray-600 hidden">Nota: Para tarifas dinâmicas, os preços de energia (kWh) são ignorados pois são calculados com base na fórmula selecionada. O custo de potência é sempre utilizado.</p>
 
                 <div class="p-6 bg-gray-50 rounded-b-lg flex justify-end gap-4">
                     <button type="button" id="form-cancel-btn" class="bg-white py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50">Cancelar</button>
@@ -261,6 +305,7 @@ $tarifas_result = $mysqli->query("SELECT * FROM tarifas ORDER BY data_inicio DES
         const addBtn = document.getElementById('add-tarifa-btn');
         const cancelBtn = document.getElementById('form-cancel-btn');
         const closeModalBtn = document.getElementById('close-modal-btn');
+        const modalidadeSelect = document.getElementById('form-modalidade');
 
         const defaultFormTitle = 'Adicionar Nova Tarifa';
         const defaultSubmitText = 'Adicionar Tarifa';
@@ -281,6 +326,7 @@ $tarifas_result = $mysqli->query("SELECT * FROM tarifas ORDER BY data_inicio DES
             form['data_fim'].value = ''; // Limpar o campo data_fim
             formTitle.textContent = defaultFormTitle;
             submitBtn.textContent = defaultSubmitText;
+            toggleFields(modalidadeSelect.value);
         };
 
         addBtn.addEventListener('click', () => {
@@ -295,6 +341,8 @@ $tarifas_result = $mysqli->query("SELECT * FROM tarifas ORDER BY data_inicio DES
                 form['tarifa_id'].value = tarifa.id;
                 form['nome_tarifa'].value = tarifa.nome_tarifa;
                 form['modalidade'].value = tarifa.modalidade;
+                form['formula_id'].value = tarifa.formula_id;
+                form['ciclo_horario'].value = tarifa.ciclo_horario;
                 form['data_inicio'].value = tarifa.data_inicio;
                 form['data_fim'].value = tarifa.data_fim;
                 form['custo_potencia_diario'].value = tarifa.custo_potencia_diario;
@@ -303,6 +351,7 @@ $tarifas_result = $mysqli->query("SELECT * FROM tarifas ORDER BY data_inicio DES
                 form['preco_cheia'].value = tarifa.preco_cheia;
                 form['preco_ponta'].value = tarifa.preco_ponta;
 
+                toggleFields(tarifa.modalidade);
                 formTitle.textContent = `A Editar Tarifa #${tarifa.id}`;
                 submitBtn.textContent = 'Atualizar Tarifa';
                 openModal();
@@ -321,6 +370,32 @@ $tarifas_result = $mysqli->query("SELECT * FROM tarifas ORDER BY data_inicio DES
             }
         });
 
+        function toggleFields(modalidade) {
+            const dinamicoFields = document.getElementById('dinamico-fields');
+            const fixoFields = document.getElementById('fixo-fields');
+            const notaDinamico = document.getElementById('nota-dinamico');
+            const simplesWrapper = document.getElementById('simples-wrapper');
+            const bihorarioWrapper = document.getElementById('bihorario-wrapper');
+
+            dinamicoFields.classList.toggle('hidden', modalidade !== 'dinamico');
+            fixoFields.classList.toggle('hidden', modalidade === 'dinamico');
+            notaDinamico.classList.toggle('hidden', modalidade !== 'dinamico');
+
+            if (modalidade === 'simples') {
+                fixoFields.classList.remove('hidden'); // Garante que o contentor principal está visível
+                simplesWrapper.classList.remove('hidden'); // Mostra o campo simples
+                bihorarioWrapper.classList.add('hidden'); // Esconde os campos bi-horário
+            } else if (modalidade === 'bi-horario') {
+                fixoFields.classList.remove('hidden'); // Garante que o contentor principal está visível
+                simplesWrapper.classList.add('hidden'); // Esconde o campo simples
+                bihorarioWrapper.classList.remove('hidden'); // Mostra os campos bi-horário
+            } else { // dinâmico ou outro
+                simplesWrapper.classList.add('hidden');
+                bihorarioWrapper.classList.add('hidden');
+            }
+        }
+        modalidadeSelect.addEventListener('change', (e) => toggleFields(e.target.value));
+
         // Verifica se há dados de uma oferta na URL para pré-preencher o formulário
         const urlParams = new URLSearchParams(window.location.search);
         if (urlParams.has('add_from_offer[nome]')) {
@@ -338,5 +413,6 @@ $tarifas_result = $mysqli->query("SELECT * FROM tarifas ORDER BY data_inicio DES
         }
     });
     </script>
+    <script src="main.js"></script>
 </body>
 </html>

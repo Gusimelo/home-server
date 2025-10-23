@@ -27,16 +27,20 @@ function calcularCustoFinalOferta(array $oferta, float $consumo_total, float $co
 
     // Condição especial para tarifas Goldenergy ACP
     $custo_fatura_periodo = $detalhes_fatura['total_fatura'] ?? 0;
-    $is_goldenergy_acp = (stripos($oferta['Comercializador'], 'gold') !== false) && (stripos($oferta['NomeProposta'], 'acp') !== false);
+    $extras_mensais = 0;
+    $is_goldenergy_acp = (trim(strtoupper($oferta['Comercializador'])) === 'GOLD') && (stripos($oferta['NomeProposta'], 'acp') !== false);
     if ($is_goldenergy_acp) {
         $custo_mensal_acp = 4.65;
-        // Adiciona o custo proporcional ao número de dias do período
-        $custo_fatura_periodo += $custo_mensal_acp * ($dias_periodo / 30);
+        $extras_mensais = $custo_mensal_acp; // O valor a mostrar na coluna é o valor mensal fixo.
+        
+        // Adiciona o custo mensal fixo diretamente ao custo do período, sem prorata.
+        $custo_fatura_periodo += $custo_mensal_acp;
     }
 
     return [
         'custo_periodo' => $custo_fatura_periodo,
-        'custo_anual' => $custo_fatura_periodo * (365 / $dias_periodo)
+        'custo_anual' => $custo_fatura_periodo * (365 / $dias_periodo),
+        'extras_mensais' => $extras_mensais
     ];
 }
 
@@ -84,6 +88,7 @@ $comando_simples = ''; // Inicializa a variável
 $comando_bihorario = ''; // Inicializa a variável
 
 // Criar uma chave de cache baseada nos segmentos para garantir que o filtro é aplicado
+sort($segmentos); // Ordena os segmentos para garantir que a chave de cache é consistente
 $segmentos_key_part = implode('_', $segmentos);
 $cache_key_simples = 'cached_ofertas_simples_' . $segmentos_key_part;
 $cache_key_bihorario = 'cached_ofertas_bihorario_' . $segmentos_key_part;
@@ -95,8 +100,7 @@ $force_refresh = isset($_GET['force_refresh']);
 if ($force_refresh || ($current_time - $last_checked) > 3600 || !isset($_SESSION[$cache_key_simples])) { // 1 hora, forçar atualização, ou cache de sessão vazia para estes segmentos
     // --- Chamada para Tarifa Simples ---
     $consumo_total_mensal = $consumo_mensal_vazio + $consumo_mensal_cheia + $consumo_mensal_ponta;
-    $comando_simples = sprintf(
-        'python3 scripts/descarregar_ofertas.py --potencia %s --consumo-fora-vazio %s %s --quiet',
+    $comando_simples = sprintf( 'python3 ' . __DIR__ . '/scripts/descarregar_ofertas.py --potencia %s --consumo-fora-vazio %s %s --quiet',
         escapeshellarg($potencia_contratada),
         escapeshellarg($consumo_total_mensal),
         $segmento_str
@@ -106,8 +110,7 @@ if ($force_refresh || ($current_time - $last_checked) > 3600 || !isset($_SESSION
 
     // --- Chamada para Tarifa Bi-Horária ---
     if ($consumo_mensal_vazio > 0) {
-        $comando_bihorario = sprintf(
-            'python3 scripts/descarregar_ofertas.py --potencia %s --consumo-fora-vazio %s --consumo-vazio %s %s --quiet',
+        $comando_bihorario = sprintf( 'python3 ' . __DIR__ . '/scripts/descarregar_ofertas.py --potencia %s --consumo-fora-vazio %s --consumo-vazio %s %s --quiet',
             escapeshellarg($potencia_contratada),
             escapeshellarg($consumo_mensal_cheia + $consumo_mensal_ponta),
             escapeshellarg($consumo_mensal_vazio),
@@ -137,6 +140,37 @@ $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
 $per_page = isset($_GET['per_page']) ? (int)$_GET['per_page'] : 30;
 if ($per_page == 0) $per_page = count($ofertas);
 
+// --- NOVA LÓGICA DE FILTROS DE EXCLUSÃO (ON/OFF) ---
+$filtros_escondidos = [
+    'indexadas' => isset($_GET['hide_indexadas']),
+    'fixas' => isset($_GET['hide_fixas']),
+    'simples' => isset($_GET['hide_simples']),
+    'bi-horaria' => isset($_GET['hide_bi-horaria']),
+];
+
+$ofertas = array_filter($ofertas, function($o) use ($filtros_escondidos) {
+    $tipo_preco = strtolower($o['TipoPreco'] ?? 'fixo');
+    $tipo_tarifa = strtolower($o['TipoTarifa'] ?? '');
+
+    // Verifica se a oferta deve ser escondida com base no tipo de preço
+    if ($filtros_escondidos['indexadas'] && $tipo_preco === 'indexado') {
+        return false;
+    }
+    if ($filtros_escondidos['fixas'] && $tipo_preco !== 'indexado') {
+        return false;
+    }
+
+    // Verifica se a oferta deve ser escondida com base no tipo de tarifa
+    if ($filtros_escondidos['simples'] && $tipo_tarifa === 'simples') {
+        return false;
+    }
+    if ($filtros_escondidos['bi-horaria'] && $tipo_tarifa === 'bi-horario') { // 'bi-horario' is correct here
+        return false;
+    }
+
+    return true; // Se não foi escondida por nenhuma regra, mostra a oferta
+});
+
 $total_ofertas = count($ofertas);
 $total_pages = ceil($total_ofertas / $per_page);
 $offset = ($page - 1) * $per_page;
@@ -153,6 +187,7 @@ foreach ($ofertas as &$oferta) {
     );
     $oferta['CustoPeriodoCalculado'] = $custos_calculados['custo_periodo'];
     $oferta['CustoAnualCalculado'] = $custos_calculados['custo_anual'];
+    $oferta['ExtrasMensais'] = $custos_calculados['extras_mensais'];
 }
 unset($oferta); // quebrar a referência
 
@@ -172,70 +207,130 @@ $ofertas_paginadas = array_slice($ofertas, $offset, $per_page);
     <title>Comparador de Ofertas de Energia</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
 </head>
-<body class="bg-gray-100 font-sans flex">    
+<body class="bg-gray-100 font-sans flex h-screen">    
     <?php 
         $active_page = 'ofertas';
         require_once 'sidebar.php'; 
     ?>
 
-    <main class="flex-1 p-8">
+    <main id="main-content" class="flex-1 p-8 overflow-y-auto">
         <div class="container mx-auto">
             <h1 class="text-3xl font-bold mb-2">Comparador de Ofertas ERSE</h1>
             <h2 class="text-xl text-gray-600 mb-6"><?php echo $titulo_pagina; ?></h2>
 
             <div class="bg-white shadow-md rounded-lg p-6">
-                <h3 class="text-xl font-bold mb-4">Melhores Ofertas Para o Seu Perfil</h3>
-                <form method="get" action="ofertas.php" class="mb-6 flex items-center space-x-4">
-                    <!-- Campos ocultos para manter o estado da paginação e ordenação -->
-                    <input type="hidden" name="page" value="<?php echo htmlspecialchars($page); ?>">
-                    <input type="hidden" name="per_page" value="<?php echo htmlspecialchars($per_page); ?>">
-                    <input type="hidden" name="orderby" value="<?php echo htmlspecialchars($orderby); ?>">
-                    <?php if (isset($_GET['ano']) && isset($_GET['mes'])): ?>
-                        <input type="hidden" name="ano" value="<?php echo htmlspecialchars($_GET['ano']); ?>">
-                        <input type="hidden" name="mes" value="<?php echo htmlspecialchars($_GET['mes']); ?>">
-                    <?php endif; ?>
+                <h3 class="text-xl font-bold">Filtros de Ofertas</h3>
+                <p class="text-md text-gray-600 italic mt-1 mb-6">Com base num consumo de <strong class="font-semibold"><?php echo number_format($consumo_cheia + $consumo_ponta, 0, ',', '.'); ?> kWh</strong> (fora de vazio) e <strong class="font-semibold"><?php echo number_format($consumo_vazio, 0, ',', '.'); ?> kWh</strong> (vazio) para uma potência de <strong class="font-semibold"><?php echo $potencia_contratada; ?> kVA</strong>.</p>
 
+                <!-- PAINEL DE FILTROS ADICIONAIS -->
+                <div class="flex items-center justify-between border-t border-gray-200 pt-4 mb-6">
+                    <div class="flex items-center space-x-4">
+                        <span class="text-sm font-medium text-gray-700">Filtro Rápido:</span>
+                        <?php
+                            // Função para filtros exclusivos (on/off)
+                            function criar_link_filtro($nome, $label, $par_oposto, $filtros_escondidos) {
+                                $params = $_GET; // Copia os parâmetros existentes
+                                $param_nome = 'hide_' . $nome;
+                                $param_par_oposto = 'hide_' . $par_oposto;
 
-                    <label class="font-semibold">Segmento de Mercado:</label>
-                    <div class="flex items-center space-x-2">
-                        <input type="checkbox" name="segmentos[]" value="Dom" id="seg_dom" <?php if (in_array('Dom', $segmentos)) echo 'checked'; ?> class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
-                        <label for="seg_dom">Doméstico</label>
-                    </div>
-                    <div class="flex items-center space-x-2">
-                        <input type="checkbox" name="segmentos[]" value="Tod" id="seg_tod" <?php if (in_array('Tod', $segmentos)) echo 'checked'; ?> class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
-                        <label for="seg_tod">Todos</label>
-                    </div>
-                    <div class="flex items-center space-x-2">
-                        <input type="checkbox" name="segmentos[]" value="Neg" id="seg_neg" <?php if (in_array('Neg', $segmentos)) echo 'checked'; ?> class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
-                        <label for="seg_neg">Negócios</label>
-                    </div>
-                    <button type="submit" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">Filtrar</button>
-                </form>
+                                $esta_escondido = $filtros_escondidos[$nome];
 
-                <p class="text-gray-700 mb-4">Com base num consumo de <strong class="font-semibold"><?php echo number_format($consumo_cheia + $consumo_ponta, 0, ',', '.'); ?> kWh</strong> (fora de vazio) e <strong class="font-semibold"><?php echo number_format($consumo_vazio, 0, ',', '.'); ?> kWh</strong> (vazio) para uma potência de <strong class="font-semibold"><?php echo $potencia_contratada; ?> kVA</strong>.</p>
-                    
-                <div class="flex flex-wrap items-center gap-x-4 gap-y-2 mb-4 text-sm">
-                    <span class="flex items-center gap-2"><span class="inline-flex items-center justify-center w-5 h-5 bg-blue-200 rounded-full text-xs font-bold text-blue-800">S</span> Tarifa Simples</span>
-                    <span class="flex items-center gap-2"><span class="inline-flex items-center justify-center w-5 h-5 bg-green-200 rounded-full text-xs font-bold text-green-800">B</span> Tarifa Bi-Horária</span>
-                    <span class="flex items-center gap-2"><span class="inline-flex items-center justify-center w-5 h-5 bg-yellow-200 rounded-full text-xs font-bold text-yellow-800">I</span> Tarifa Indexada</span>
-                    <span class="flex items-center gap-2"><span class="inline-block w-4 h-4 bg-gray-200 rounded-full"></span> A sua oferta atual</span>
+                                if ($esta_escondido) {
+                                    // Se está escondido (cinzento), o clique vai mostrá-lo (tira o parâmetro)
+                                    unset($params[$param_nome]);
+                                } else {
+                                    // Se está a mostrar (azul), o clique vai escondê-lo (adiciona o parâmetro)
+                                    $params[$param_nome] = '1';
+                                    // Regra de segurança: se o par oposto já estiver escondido, reativa-o
+                                    if (isset($params[$param_par_oposto])) {
+                                        unset($params[$param_par_oposto]);
+                                    }
+                                }
+
+                                unset($params['page']); // Resetar a página ao mudar o filtro
+                                $query_string = http_build_query($params);
+                                $url = "ofertas.php?" . $query_string;
+                                
+                                // A cor é azul se NÃO está escondido, e cinzento se ESTÁ escondido.
+                                $classes = !$esta_escondido
+                                    ? 'bg-blue-600 text-white hover:bg-blue-700' // Azul (a mostrar)
+                                    : 'bg-gray-200 text-gray-700'; // Cinzento (escondido)
+
+                                return "<a href=\"$url\" class=\"$classes px-4 py-2 rounded-md text-sm font-semibold transition\">$label</a>";
+                            }
+
+                            // Função para filtros múltiplos (pode ter vários ativos)
+                            function criar_link_filtro_multiplo($param_name, $valor, $label, $valores_atuais) {
+                                $params = $_GET;
+                                $url = '#'; // URL padrão para o caso de não ser possível desativar
+                                $esta_ativo = in_array($valor, $valores_atuais);
+
+                                if ($esta_ativo) {
+                                    // Apenas permite desativar se houver mais de um filtro ativo
+                                    if (count($valores_atuais) > 1) {
+                                        $params[$param_name] = array_values(array_diff($valores_atuais, [$valor]));
+                                        if (empty($params[$param_name])) {
+                                            unset($params[$param_name]);
+                                        }
+                                        unset($params['page']);
+                                        $query_string = http_build_query($params);
+                                        $url = "ofertas.php?" . $query_string;
+                                    }
+                                } else {
+                                    // Se está inativo, o clique vai ativá-lo
+                                    $params[$param_name] = array_merge($valores_atuais, [$valor]);
+                                    unset($params['page']);
+                                    $query_string = http_build_query($params);
+                                    $url = "ofertas.php?" . $query_string;
+                                }
+
+                                $classes = 'px-4 py-2 rounded-md text-sm font-semibold transition';
+                                if ($esta_ativo) {
+                                    $classes .= ' bg-blue-600 text-white hover:bg-blue-700';
+                                    if (count($valores_atuais) <= 1) $classes .= ' opacity-50 cursor-not-allowed'; // Estilo para desativado
+                                } else {
+                                    $classes .= ' bg-gray-200 text-gray-700';
+                                }
+                                
+                                return "<a href=\"$url\" class=\"$classes px-4 py-2 rounded-md text-sm font-semibold transition\">$label</a>";
+                            }
+
+                            echo criar_link_filtro('indexadas', 'Indexadas', 'fixas', $filtros_escondidos);
+                            echo criar_link_filtro('fixas', 'Fixas', 'indexadas', $filtros_escondidos);
+                        ?>
+                        <span class="border-l border-gray-300 h-6 mx-2"></span>
+                        <?php
+                            echo criar_link_filtro('simples', 'Simples', 'bi-horaria', $filtros_escondidos);
+                            echo criar_link_filtro('bi-horaria', 'Bi-Horária', 'simples', $filtros_escondidos); // Corrected from 'bi-horaria' to 'bi-horaria'
+                        ?>
+                        <span class="border-l border-gray-300 h-6 mx-2"></span>
+                        <?php
+                            echo criar_link_filtro_multiplo('segmentos', 'Dom', 'Doméstico', $segmentos);
+                            echo criar_link_filtro_multiplo('segmentos', 'Neg', 'Negócios', $segmentos);
+                            echo criar_link_filtro_multiplo('segmentos', 'Tod', 'Ambos', $segmentos);
+                        ?>
+                        <?php if (in_array(true, array_values($filtros_escondidos)) || count($segmentos) < 3): ?>
+                            <a href="ofertas.php" class="text-sm text-red-500 hover:text-red-700 font-semibold" title="Limpar todos os filtros">
+                                &times; Limpar
+                            </a>
+                        <?php endif; ?>
+                    </div>
+                    <div>
+                        <form method="get" action="ofertas.php" class="flex items-center gap-2">
+                            <input type="hidden" name="orderby" value="<?php echo $orderby; ?>">
+                            <label for="per_page" class="text-sm font-medium text-gray-700">Mostrar:</label>
+                            <select name="per_page" id="per_page" onchange="this.form.submit()" class="text-sm rounded-md border-gray-300 shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
+                                <option value="10" <?php if ($per_page == 10) echo 'selected'; ?>>10</option>
+                                <option value="20" <?php if ($per_page == 20) echo 'selected'; ?>>20</option>
+                                <option value="30" <?php if ($per_page == 30) echo 'selected'; ?>>30</option>
+                                <option value="50" <?php if ($per_page == 50) echo 'selected'; ?>>50</option>
+                                <option value="0" <?php if ($per_page == count($ofertas)) echo 'selected'; ?>>Todas</option>
+                            </select>
+                        </form>
+                    </div>
                 </div>
-
-                <div class="flex justify-between items-center mb-4">
-                    <form method="get" action="ofertas.php">
-                        <input type="hidden" name="orderby" value="<?php echo $orderby; ?>">
-                        <label for="per_page">Ofertas por página:</label>
-                        <select name="per_page" id="per_page" onchange="this.form.submit()" class="border-gray-300 rounded-md shadow-sm focus:border-indigo-300 focus:ring focus:ring-indigo-200 focus:ring-opacity-50">
-                            <option value="10" <?php if ($per_page == 10) echo 'selected'; ?>>10</option>
-                            <option value="20" <?php if ($per_page == 20) echo 'selected'; ?>>20</option>
-                            <option value="30" <?php if ($per_page == 30) echo 'selected'; ?>>30</option>
-                            <option value="50" <?php if ($per_page == 50) echo 'selected'; ?>>50</option>
-                            <option value="0" <?php if ($per_page == count($ofertas)) echo 'selected'; ?>>Todas</option>
-                        </select>
-                    </form>
-                </div>
-
                 <?php if (!empty($ofertas)):
                 ?>
                     <div class="overflow-x-auto">
@@ -246,6 +341,7 @@ $ofertas_paginadas = array_slice($ofertas, $offset, $per_page);
                                     <th class="py-3 px-4 text-left">Comercializador</th>
                                     <th class="py-3 px-4 text-left">Oferta</th>
                                     <th class="py-3 px-4 text-right"><a href="?orderby=CustoPeriodoCalculado&per_page=<?php echo $per_page; ?>" class="hover:text-blue-300">Custo no Período</a></th>
+                                    <th class="py-3 px-4 text-right">Extras Mensais</th>
                                     <th class="py-3 px-4 text-right"><a href="?orderby=CustoAnualCalculado&per_page=<?php echo $per_page; ?>" class="hover:text-blue-300">Custo Anual Calculado</a></th>
                                     <th class="py-3 px-4 text-right">Termo Fixo (€/dia)</th>
                                     <th class="py-3 px-4 text-right">Preço Simples (€/kWh)</th>
@@ -282,6 +378,11 @@ $ofertas_paginadas = array_slice($ofertas, $offset, $per_page);
                                         <td class="py-3 px-4"><?php echo htmlspecialchars($oferta['Comercializador'] ?? ''); ?></td>
                                         <td class="py-3 px-4"><?php echo htmlspecialchars($oferta['NomeProposta'] ?? ''); ?></td>
                                         <td class="py-3 px-4 text-right">&euro; <?php echo number_format($oferta['CustoPeriodoCalculado'], 2, ',', '.'); ?></td>
+                                        <td class="py-3 px-4 text-right">
+                                            <?php if (($oferta['ExtrasMensais'] ?? 0) > 0): ?>
+                                                <span class="font-bold text-orange-600" title="Custo extra mensal (ex: subscrições)">&euro; <?php echo number_format($oferta['ExtrasMensais'], 2, ',', '.'); ?></span>
+                                            <?php else: echo '-'; endif; ?>
+                                        </td>
                                         <td class="py-3 px-4 text-right">&euro; <?php echo number_format($oferta['CustoAnualCalculado'], 2, ',', '.'); ?></td>
                                         <td class="py-3 px-4 text-right"><?php echo number_format($oferta['TermoFixoDiario'] ?? 0, 4, ',', '.'); ?></td>
                                         
@@ -338,5 +439,6 @@ $ofertas_paginadas = array_slice($ofertas, $offset, $per_page);
             </div>
         </div>
     </main>
+    <script src="main.js"></script>
 </body>
 </html>

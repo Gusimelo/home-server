@@ -1,38 +1,46 @@
 <?php
-// Ficheiro: calculos.php (v5.2 - Custo de energia dividido e projeção)
+// Ficheiro: calculos.php (v6.0 - Arquitetura Multi-Fórmula)
 
 function obterDadosPeriodo(mysqli $mysqli, string $data_inicio_str, string $data_fim_str, array $tarifas): array
 {
-    $sql = "
-        SELECT
-            data_hora,
-            consumo_vazio,
-            consumo_cheia,
-            consumo_ponta
-        FROM leituras_energia le
-        WHERE DATE(le.data_hora) BETWEEN ? AND ?
-        ORDER BY data_hora ASC";
+    // --- PASSO 1: Obter dados de consumo do período ---
+    $sql_consumo = "SELECT data_hora, consumo_vazio, consumo_cheia, consumo_ponta FROM leituras_energia WHERE DATE(data_hora) BETWEEN ? AND ? ORDER BY data_hora ASC";
+    $stmt_consumo = $mysqli->prepare($sql_consumo);
+    $stmt_consumo->bind_param("ss", $data_inicio_str, $data_fim_str);
+    $stmt_consumo->execute();
+    $result_consumo = $stmt_consumo->get_result();
 
-    $stmt = $mysqli->prepare($sql);
-    $stmt->bind_param("ss", $data_inicio_str, $data_fim_str);
-    $stmt->execute();
-    $result = $stmt->get_result();
-
-    $precos_dinamicos = [];
+    // --- PASSO 2: Obter dados de preços e tarifas necessários ---
+    $precos_energia = [];
+    $tarifas_acesso = [];
     $tem_tarifa_dinamica = !empty(array_filter($tarifas, fn($t) => $t['modalidade'] === 'dinamico'));
 
     if ($tem_tarifa_dinamica) {
-        $sql_precos = "SELECT * FROM precos_dinamicos WHERE DATE(data_hora) BETWEEN ? AND ?";
+        // Obter todos os preços de energia pré-calculados para o período
+        $sql_precos = "SELECT * FROM precos_energia_dinamicos WHERE DATE(data_hora) BETWEEN ? AND ?";
         $stmt_precos = $mysqli->prepare($sql_precos);
-        if ($stmt_precos) {
-            $stmt_precos->bind_param("ss", $data_inicio_str, $data_fim_str);
-            $stmt_precos->execute();
-            $result_precos = $stmt_precos->get_result();
-            while ($row = $result_precos->fetch_assoc()) { $precos_dinamicos[$row['data_hora']] = $row; }
-            $stmt_precos->close();
+        $stmt_precos->bind_param("ss", $data_inicio_str, $data_fim_str);
+        $stmt_precos->execute();
+        $result_precos = $stmt_precos->get_result();
+        while ($row = $result_precos->fetch_assoc()) {
+            // Estrutura: [data_hora][formula_id] => preco_energia
+            $precos_energia[$row['data_hora']][$row['formula_id']] = $row['preco_energia'];
         }
+        $stmt_precos->close();
+
+        // Obter todas as Tarifas de Acesso à Rede (TAR) aplicáveis no período
+        $sql_tar = "SELECT * FROM tarifas_acesso_redes WHERE data_inicio <= ? AND (data_fim IS NULL OR data_fim >= ?)";
+        $stmt_tar = $mysqli->prepare($sql_tar);
+        $stmt_tar->bind_param("ss", $data_fim_str, $data_inicio_str); // data_fim para o primeiro ?, data_inicio para o segundo
+        $stmt_tar->execute();
+        $result_tar = $stmt_tar->get_result();
+        while ($row = $result_tar->fetch_assoc()) {
+            $tarifas_acesso[] = $row;
+        }
+        $stmt_tar->close();
     }
 
+    // --- PASSO 3: Iterar sobre o consumo e calcular custos para cada tarifa ---
     $dados_por_dia = [];
     $tarifas_ids = array_keys($tarifas);
     $totais = [
@@ -46,7 +54,7 @@ function obterDadosPeriodo(mysqli $mysqli, string $data_inicio_str, string $data
         'base_iva_energia_normal' => array_fill_keys($tarifas_ids, 0)
     ];
 
-    while ($row = $result->fetch_assoc()) {
+    while ($row = $result_consumo->fetch_assoc()) {
         $data_leitura = new DateTime($row['data_hora'], new DateTimeZone('UTC'));
         $dia = $data_leitura->format('Y-m-d');
         $consumo_total_leitura = $row['consumo_vazio'] + $row['consumo_cheia'] + $row['consumo_ponta'];
@@ -58,6 +66,7 @@ function obterDadosPeriodo(mysqli $mysqli, string $data_inicio_str, string $data
             ];
         }
 
+        // Acumular totais de consumo
         $dados_por_dia[$dia]['consumo_vazio'] += $row['consumo_vazio'];
         $dados_por_dia[$dia]['consumo_cheia'] += $row['consumo_cheia'];
         $dados_por_dia[$dia]['consumo_ponta'] += $row['consumo_ponta'];
@@ -66,41 +75,70 @@ function obterDadosPeriodo(mysqli $mysqli, string $data_inicio_str, string $data
         $totais['consumo_ponta'] += $row['consumo_ponta'];
         $totais['total_kwh'] += $consumo_total_leitura;
 
+        // Encontrar a TAR aplicável para esta data específica
+        $tar_aplicavel_leitura = null;
+        if ($tem_tarifa_dinamica) {
+            foreach ($tarifas_acesso as $tar) {
+                $tar_inicio = new DateTime($tar['data_inicio']);
+                $tar_fim = $tar['data_fim'] ? new DateTime($tar['data_fim']) : null;
+                if ($data_leitura >= $tar_inicio && (is_null($tar_fim) || $data_leitura <= $tar_fim)) {
+                    $tar_aplicavel_leitura = $tar;
+                    break;
+                }
+            }
+        }
+
         foreach ($tarifas as $id => $tarifa) {
             $kwh_antes_leitura = $totais['total_kwh'] - $consumo_total_leitura;
-            
             $custo_vazio_leitura = 0;
             $custo_fora_vazio_leitura = 0;
 
-            if ($tarifa['modalidade'] === 'simples') {
+            if ($tarifa['modalidade'] === 'dinamico') {
+                $data_hora_leitura_str = $data_leitura->format('Y-m-d H:00:00');
+                $formula_id = $tarifa['formula_id'];
+
+                if (isset($precos_energia[$data_hora_leitura_str][$formula_id]) && $tar_aplicavel_leitura) {
+                    $preco_energia = $precos_energia[$data_hora_leitura_str][$formula_id];
+                    $periodo_tarifario = obterPeriodoTarifario($data_leitura);
+                    $tar_price = 0.0; // Inicializa com um float
+
+                    if ($tarifa['ciclo_horario'] === 'simples') {
+                        $tar_price = $tar_aplicavel_leitura['preco_simples'] ?? 0.0;
+                    } else { // bi-horario ou tri-horario
+                        if ($periodo_tarifario === 'Vazio') $tar_price = $tar_aplicavel_leitura['preco_vazio'] ?? 0.0;
+                        elseif ($periodo_tarifario === 'Cheia') $tar_price = $tar_aplicavel_leitura['preco_cheia'] ?? 0.0;
+                        elseif ($periodo_tarifario === 'Ponta') $tar_price = $tar_aplicavel_leitura['preco_ponta'] ?? 0.0;
+                    }
+
+                    $preco_kwh_final = $preco_energia + $tar_price;
+
+                    if ($tarifa['ciclo_horario'] === 'simples') {
+                        $custo_fora_vazio_leitura = $consumo_total_leitura * $preco_kwh_final;
+                    } else { // bi-horario ou tri-horario
+                        if ($periodo_tarifario === 'Vazio') {
+                            $custo_vazio_leitura = $consumo_total_leitura * $preco_kwh_final;
+                        } else {
+                            $custo_fora_vazio_leitura = $consumo_total_leitura * $preco_kwh_final;
+                        }
+                    }
+                }
+            } elseif ($tarifa['modalidade'] === 'simples') {
                 $custo_fora_vazio_leitura = $consumo_total_leitura * $tarifa['preco_simples'];
             } elseif ($tarifa['modalidade'] === 'bi-horario') {
                 $custo_vazio_leitura = $row['consumo_vazio'] * $tarifa['preco_vazio'];
                 $custo_fora_vazio_leitura = ($row['consumo_cheia'] * $tarifa['preco_cheia']) + ($row['consumo_ponta'] * $tarifa['preco_ponta']);
-            } elseif ($tarifa['modalidade'] === 'dinamico') {
-                $data_hora_leitura = $data_leitura->format('Y-m-d H:00:00');
-                if (isset($precos_dinamicos[$data_hora_leitura])) {
-                    $preco_kwh = $precos_dinamicos[$data_hora_leitura]['preco_kwh'];
-                    $periodo_tarifario = obterPeriodoTarifario($data_leitura);
-                    if ($periodo_tarifario === 'Vazio') {
-                        $custo_vazio_leitura = $consumo_total_leitura * $preco_kwh;
-                    } else {
-                        $custo_fora_vazio_leitura = $consumo_total_leitura * $preco_kwh;
-                    }
-                }
             }
             
             $custo_leitura = $custo_vazio_leitura + $custo_fora_vazio_leitura;
 
+            // Lógica de cálculo de IVA (inalterada)
             if ($kwh_antes_leitura < LIMITE_KWH_IVA_REDUZIDO) {
                 $kwh_para_iva_reduzido = min($consumo_total_leitura, LIMITE_KWH_IVA_REDUZIDO - $kwh_antes_leitura);
                 $kwh_para_iva_normal = $consumo_total_leitura - $kwh_para_iva_reduzido;
-
                 if ($consumo_total_leitura > 0) {
                     $fracao_reduzida = $kwh_para_iva_reduzido / $consumo_total_leitura;
-                    $fracao_normal = $kwh_para_iva_normal / $consumo_total_leitura;
                     $custo_fracao_reduzida = $custo_leitura * $fracao_reduzida;
-                    $custo_fracao_normal = $custo_leitura * $fracao_normal;
+                    $custo_fracao_normal = $custo_leitura * (1 - $fracao_reduzida);
                     $totais['base_iva_energia_reduzido'][$id] += $custo_fracao_reduzida;
                     $totais['base_iva_energia_normal'][$id] += $custo_fracao_normal;
                     $totais['iva_energia_reduzido'][$id] += $custo_fracao_reduzida * IVA_REDUZIDO;
@@ -111,16 +149,16 @@ function obterDadosPeriodo(mysqli $mysqli, string $data_inicio_str, string $data
                 $totais['iva_energia_normal'][$id] += $custo_leitura * IVA_NORMAL;
             }
 
+            // Acumular totais
             $dados_por_dia[$dia]['custos_vazio'][$id] = ($dados_por_dia[$dia]['custos_vazio'][$id] ?? 0) + $custo_vazio_leitura;
             $dados_por_dia[$dia]['custos_fora_vazio'][$id] = ($dados_por_dia[$dia]['custos_fora_vazio'][$id] ?? 0) + $custo_fora_vazio_leitura;
             $dados_por_dia[$dia]['custos_energia'][$id] = ($dados_por_dia[$dia]['custos_energia'][$id] ?? 0) + $custo_leitura;
-            
             $totais['custos_vazio'][$id] = ($totais['custos_vazio'][$id] ?? 0) + $custo_vazio_leitura;
             $totais['custos_fora_vazio'][$id] = ($totais['custos_fora_vazio'][$id] ?? 0) + $custo_fora_vazio_leitura;
             $totais['custos_energia'][$id] += $custo_leitura;
         }
     }
-    $stmt->close();
+    $stmt_consumo->close();
 
     return [
         'dados_por_dia' => $dados_por_dia,
@@ -299,11 +337,11 @@ function obterPeriodoTarifario(DateTime $data): string
     $ano = (int)$data_local->format('Y');
     $start_summer = new DateTime("last sunday of March $ano", new DateTimeZone('Europe/Lisbon'));
     $end_summer = new DateTime("last sunday of October $ano", new DateTimeZone('Europe/Lisbon'));
-    $is_summer = ($data >= $start_summer && $data < $end_summer);
+    $is_summer = ($data_local >= $start_summer && $data_local < $end_summer);
 
-    $dia_semana = (int)$data->format('N'); // 1-7, 1=Segunda
-    $hora = (int)$data->format('G'); // 0-23
-    $minuto = (int)$data->format('i');
+    $dia_semana = (int)$data_local->format('N'); // 1-7, 1=Segunda
+    $hora = (int)$data_local->format('G'); // 0-23
+    $minuto = (int)$data_local->format('i');
 
     if ($dia_semana === 7) return 'Vazio'; // Domingo é sempre Vazio
 

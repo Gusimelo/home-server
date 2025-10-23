@@ -21,6 +21,7 @@ $fuso_horario_local = new DateTimeZone('Europe/Lisbon');
     <title>Dashboard Energético v4.0</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body class="bg-gray-100 font-sans flex h-screen">    
     <?php 
@@ -28,7 +29,7 @@ $fuso_horario_local = new DateTimeZone('Europe/Lisbon');
         require_once 'sidebar.php'; 
     ?>
 
-    <main class="flex-1 p-8 overflow-y-auto">
+    <main id="main-content" class="flex-1 p-8 overflow-y-auto">
         <div class="max-w-7xl mx-auto">
             <h1 class="text-3xl font-bold text-gray-800">Dashboard Energético</h1>
             <h2 class="text-xl text-gray-600 mb-6"><?php echo $titulo_pagina; ?></h2>
@@ -37,15 +38,15 @@ $fuso_horario_local = new DateTimeZone('Europe/Lisbon');
                 <div class="p-6">
                     <h3 class="text-xl font-bold mb-4">Comparativo de Fatura (€)</h3>
                     <div class="overflow-x-auto">
-                        <table class="min-w-full text-sm">
-                            <thead class="bg-gray-100">
+                        <table class="min-w-full">
+                        <thead class="bg-gray-800 text-white">
                             <?php
                                 // Encontra o ID da tarifa projetada mais barata
                                 $id_tarifa_mais_barata_proj = null;
                                 if ($is_current_period && !empty($faturas_projetadas)) {
                                     $min_fatura_proj = PHP_FLOAT_MAX;
                                     foreach ($faturas_projetadas as $id => $fatura) {
-                                        if (isset($fatura['total_fatura']) && $fatura['total_fatura'] < $min_fatura_proj) {
+                                    if (isset($fatura['total_fatura']) && $fatura['total_fatura'] < $min_fatura_proj) {
                                             $min_fatura_proj = $fatura['total_fatura'];
                                             $id_tarifa_mais_barata_proj = $id;
                                         }
@@ -53,13 +54,13 @@ $fuso_horario_local = new DateTimeZone('Europe/Lisbon');
                                 }
                             ?>
                             <tr>
-                                <th class="py-2 px-3 text-left font-semibold text-gray-600 w-1/4">Componente</th>                                
+                            <th class="py-2 px-3 text-left font-semibold w-1/4">Componente</th>                                
                                 <?php foreach ($tarifas as $tarifa): ?>
-                                    <th class="py-2 px-3 text-right font-semibold text-gray-600"><?php echo htmlspecialchars($tarifa['nome_tarifa']); ?></th>
+                                <th class="py-2 px-3 text-right font-semibold"><?php echo htmlspecialchars($tarifa['nome_tarifa']); ?></th>
                                 <?php endforeach; ?>
 
                                 <?php if ($is_current_period): foreach ($tarifas as $id => $tarifa): ?>
-                                    <th class="py-2 px-3 text-right font-semibold text-blue-600"><?php echo htmlspecialchars($tarifa['nome_tarifa']); ?> (Proj.) <?php if ($id === $id_tarifa_mais_barata_proj): ?><span class="text-yellow-400" title="Opção mais económica (projetado)">⭐</span><?php endif; ?></th>
+                                <th class="py-2 px-3 text-right font-semibold"><?php echo htmlspecialchars($tarifa['nome_tarifa']); ?> (Proj.) <?php if ($id === $id_tarifa_mais_barata_proj): ?><span class="text-yellow-400" title="Opção mais económica (projetado)">⭐</span><?php endif; ?></th>
                                 <?php endforeach; endif; ?>
                             </tr>
                         </thead>
@@ -114,7 +115,7 @@ $fuso_horario_local = new DateTimeZone('Europe/Lisbon');
             <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
                 <div class="bg-white rounded-lg shadow-md p-6">
                     <h3 class="text-xl font-bold mb-4">Resumo de Consumo (kWh)</h3>
-                    <table class="min-w-full text-sm">
+                    <table class="min-w-full">
                         <thead class="border-b-2 border-gray-200"><tr><th class="py-2 px-3 text-left font-semibold text-gray-600">Tarifa</th><th class="py-2 px-3 text-right font-semibold text-gray-600">Atual</th><?php if ($is_current_period): ?><th class="py-2 px-3 text-right font-semibold text-blue-600">Projetado</th><?php endif; ?></tr></thead>
                         <tbody class="text-gray-800">
                             <tr>
@@ -199,7 +200,7 @@ $fuso_horario_local = new DateTimeZone('Europe/Lisbon');
             </div>
             <div class="p-6 flex-grow overflow-y-auto">
                 <button id="toggleZeroButton" class="mb-4 bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded">Mostrar Registos a Zero</button>
-                <table class="min-w-full text-sm">
+                <table class="min-w-full">
                     <thead class="bg-gray-800 text-white sticky top-0">
                         <tr>
                             <th class="py-2 px-3 text-left">Data e Hora (Local)</th>
@@ -309,7 +310,7 @@ $fuso_horario_local = new DateTimeZone('Europe/Lisbon');
                     },
                     dataLabels: { enabled: false },
                     stroke: { width: 1, colors: ['#fff'] },
-                    xaxis: { type: 'category', categories: hours, labels: { show: true, rotate: -90, rotateAlways: true, style: { fontSize: '10px' } }, tickPlacement: 'on' },
+                    xaxis: { type: 'category', categories: hours, labels: { show: true, rotate: -90, rotateAlways: true, style: { fontSize: '11px' } }, tickPlacement: 'on' },
                     tooltip: { y: { formatter: (value, { series, seriesIndex, dataPointIndex, w }) => {
                         const point = w.globals.initialSeries[seriesIndex].data[dataPointIndex];
                         return point && point.periodo ? `${value.toFixed(2)} kWh (${point.periodo})` : `${value.toFixed(2)} kWh`;
@@ -348,7 +349,7 @@ $fuso_horario_local = new DateTimeZone('Europe/Lisbon');
                         { x: '00:00', ...estiloVazio.linha, label: { ...estiloVazio.label, position: 'top', offsetY: -12, text: '$ →' } },
                         { x: '07:00', ...estiloCheia.linha, label: { ...estiloCheia.label, position: 'top', offsetY: -12, text: '$$ →' } }
                     ]};
-                    const weekdayOptions = { ...baseOptions, series: weekdaySeries, chart: { ...baseOptions.chart, height: 250 }, annotations: weekdayAnnotations, title: { text: 'Segunda a Sexta', align: 'left', style: { fontSize: '16px' } } };
+                    const weekdayOptions = { ...baseOptions, series: weekdaySeries, chart: { ...baseOptions.chart, height: 280 }, annotations: weekdayAnnotations, title: { text: 'Segunda a Sexta', align: 'left', style: { fontSize: '16px' } } };
                     new ApexCharts(weekdayChartEl, weekdayOptions).render();
                 } else if(weekdayChartEl) { weekdayChartEl.innerHTML = "<p style='text-align:center; padding: 20px;'>Sem dados.</p>"; }
 
@@ -369,7 +370,7 @@ $fuso_horario_local = new DateTimeZone('Europe/Lisbon');
                         saturdayAnnotations.xaxis.push({ x: '18:30', ...estiloCheia.linha, label: { ...estiloCheia.label, position: 'top', offsetY: -12, text: '$$ →' } });
                         saturdayAnnotations.xaxis.push({ x: '22:00', ...estiloVazio.linha, label: { ...estiloVazio.label, position: 'top', offsetY: -12, text: '$ →' } });
                     }
-                    const saturdayOptions = { ...baseOptions, series: saturdaySeries, chart: { ...baseOptions.chart, height: 120 }, annotations: saturdayAnnotations, title: { text: 'Sábado', align: 'left', style: { fontSize: '16px' } } };
+                    const saturdayOptions = { ...baseOptions, series: saturdaySeries, chart: { ...baseOptions.chart, height: 140 }, annotations: saturdayAnnotations, title: { text: 'Sábado', align: 'left', style: { fontSize: '16px' } } };
                     new ApexCharts(saturdayChartEl, saturdayOptions).render();
                 } else if(saturdayChartEl) { saturdayChartEl.innerHTML = "<p style='text-align:center; padding: 20px;'>Sem dados para Sábado.</p>"; }
 
@@ -379,7 +380,7 @@ $fuso_horario_local = new DateTimeZone('Europe/Lisbon');
                     const sundayAnnotations = { xaxis: [
                         { x: '00:00', ...estiloVazio.linha, label: { ...estiloVazio.label, position: 'top', offsetY: -12, text: '$ →' } }
                     ]};
-                    const sundayOptions = { ...baseOptions, series: sundaySeries, chart: { ...baseOptions.chart, height: 120 }, annotations: sundayAnnotations, title: { text: 'Domingo (100% Vazio)', align: 'left', style: { fontSize: '16px' } } };
+                    const sundayOptions = { ...baseOptions, series: sundaySeries, chart: { ...baseOptions.chart, height: 140 }, annotations: sundayAnnotations, title: { text: 'Domingo', align: 'left', style: { fontSize: '16px' } } };
                     new ApexCharts(sundayChartEl, sundayOptions).render();
                 } else if(sundayChartEl) { sundayChartEl.innerHTML = "<p style='text-align:center; padding: 20px;'>Sem dados para Domingo.</p>"; }
             })
@@ -462,5 +463,6 @@ $fuso_horario_local = new DateTimeZone('Europe/Lisbon');
             });
     });
     </script>
+    <script src="main.js"></script>
 </body>
 </html>

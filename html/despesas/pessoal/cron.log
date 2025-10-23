@@ -1,0 +1,164 @@
+--- Iniciando script de lembretes de vencimento em 2025-09-18 17:24:19 ---
+Liga��o � base de dados estabelecida com sucesso.
+A procurar pagamentos pendentes com data de vencimento para amanh�: 2025-09-19
+Nenhum pagamento a vencer amanh�. A terminar.
+--- Iniciando script de lembretes de vencimento em 2025-09-18 17:24:48 ---
+Ligação à base de dados estabelecida com sucesso.
+A procurar pagamentos pendentes com data de vencimento para amanhã: 2025-09-19
+Nenhum pagamento a vencer amanhã. A terminar.
+--- Iniciando script de lembretes de vencimento em 2025-09-18 17:25:11 ---
+Ligação à base de dados estabelecida com sucesso.
+A procurar pagamentos pendentes com data de vencimento para amanhã: 2025-09-19
+Encontrados 1 pagamentos a vencer amanhã.
+A processar emails...
+A processar pagamentos para: Gustavo
+-> Email enviado com sucesso para Gustavo (gustavoamelo@gmail.com)
+--- Script concluído em 2025-09-18 17:25:11 ---
+PHP Warning:  require(../../vendor/autoload.php): failed to open stream: No such file or directory in /var/www/html/despesas/pessoal/cron_send_reminders.php on line 12
+PHP Fatal error:  require(): Failed opening required '../../vendor/autoload.php' (include_path='.:/usr/share/php') in /var/www/html/despesas/pessoal/cron_send_reminders.php on line 12
+PHP Warning:  require(../../vendor/autoload.php): failed to open stream: No such file or directory in /var/www/html/despesas/pessoal/cron_send_reminders.php on line 12
+PHP Fatal error:  require(): Failed opening required '../../vendor/autoload.php' (include_path='.:/usr/share/php') in /var/www/html/despesas/pessoal/cron_send_reminders.php on line 12
+PHP Warning:  require(../../vendor/autoload.php): failed to open stream: No such file or directory in /var/www/html/despesas/pessoal/cron_send_reminders.php on line 12
+PHP Fatal error:  require(): Failed opening required '../../vendor/autoload.php' (include_path='.:/usr/share/php') in /var/www/html/despesas/pessoal/cron_send_reminders.php on line 12
+PHP Warning:  require(../../vendor/autoload.php): failed to open stream: No such file or directory in /var/www/html/despesas/pessoal/cron_send_reminders.php on line 12
+PHP Fatal error:  require(): Failed opening required '../../vendor/autoload.php' (include_path='.:/usr/share/php') in /var/www/html/despesas/pessoal/cron_send_reminders.php on line 12
+PHP Warning:  require(../../vendor/autoload.php): failed to open stream: No such file or directory in /var/www/html/despesas/pessoal/cron_send_reminders.php on line 12
+PHP Fatal error:  require(): Failed opening required '../../vendor/autoload.php' (include_path='.:/usr/share/php') in /var/www/html/despesas/pessoal/cron_send_reminders.php on line 12
+PHP Warning:  require(../../vendor/autoload.php): failed to open stream: No such file or directory in /var/www/html/despesas/pessoal/cron_send_reminders.php on line 12
+PHP Fatal error:  require(): Failed opening required '../../vendor/autoload.php' (include_path='.:/usr/share/php') in /var/www/html/despesas/pessoal/cron_send_reminders.php on line 12
+PHP Warning:  require(../../vendor/autoload.php): failed to open stream: No such file or directory in /var/www/html/despesas/pessoal/cron_send_reminders.php on line 12
+PHP Fatal error:  require(): Failed opening required '../../vendor/autoload.php' (include_path='.:/usr/share/php') in /var/www/html/despesas/pessoal/cron_send_reminders.php on line 12
+PHP Warning:  require(../../vendor/autoload.php): failed to open stream: No such file or directory in /var/www/html/despesas/pessoal/cron_send_reminders.php on line 12
+PHP Fatal error:  require(): Failed opening required '../../vendor/autoload.php' (include_path='.:/usr/share/php') in /var/www/html/despesas/pessoal/cron_send_reminders.php on line 12
+PHP Warning:  require(../../vendor/autoload.php): failed to open stream: No such file or directory in /var/www/html/despesas/pessoal/cron_send_reminders.php on line 12
+PHP Fatal error:  require(): Failed opening required '../../vendor/autoload.php' (include_path='.:/usr/share/php') in /var/www/html/despesas/pessoal/cron_send_reminders.php on line 12
+--- Iniciando script de lembretes de vencimento (SMTP HTML) em 2025-09-27 21:00:01 ---
+Ligação à base de dados estabelecida.
+A procurar pagamentos pendentes para amanhã: 2025-09-28
+Nenhum pagamento a vencer amanhã. A terminar.
+--- Iniciando script de lembretes de vencimento (SMTP HTML) em 2025-09-28 21:00:01 ---
+Ligação à base de dados estabelecida.
+A procurar pagamentos pendentes para amanhã: 2025-09-29
+Nenhum pagamento a vencer amanhã. A terminar.
+--- Iniciando script de lembretes de vencimento (SMTP HTML) em 2025-09-29 21:00:01 ---
+Ligação à base de dados estabelecida.
+A procurar pagamentos pendentes para amanhã: 2025-09-30
+Encontrados 1 pagamentos.
+A processar emails...
+A processar pagamentos para: Gustavo
+-> Email enviado com sucesso para Gustavo (gustavoamelo@gmail.com)
+--- Script concluído em 2025-09-29 21:00:02 ---
+--- Iniciando script de lembretes de vencimento (SMTP HTML) em 2025-09-30 21:00:01 ---
+Ligação à base de dados estabelecida.
+A procurar pagamentos pendentes para amanhã: 2025-10-01
+Encontrados 3 pagamentos.
+A processar emails...
+A processar pagamentos para: Filipa
+-> Email enviado com sucesso para Filipa (filipamr@hotmail.com)
+A processar pagamentos para: Gustavo
+-> Email enviado com sucesso para Gustavo (gustavoamelo@gmail.com)
+--- Script concluído em 2025-09-30 21:00:04 ---
+--- Iniciando script de lembretes de vencimento (SMTP HTML) em 2025-10-01 21:00:01 ---
+Ligação à base de dados estabelecida.
+A procurar pagamentos pendentes para amanhã: 2025-10-02
+Nenhum pagamento a vencer amanhã. A terminar.
+--- Iniciando script de lembretes de vencimento (SMTP HTML) em 2025-10-02 21:00:01 ---
+Ligação à base de dados estabelecida.
+A procurar pagamentos pendentes para amanhã: 2025-10-03
+Nenhum pagamento a vencer amanhã. A terminar.
+--- Iniciando script de lembretes de vencimento (SMTP HTML) em 2025-10-03 21:00:01 ---
+Ligação à base de dados estabelecida.
+A procurar pagamentos pendentes para amanhã: 2025-10-04
+Encontrados 1 pagamentos.
+A processar emails...
+A processar pagamentos para: Gustavo
+-> Email enviado com sucesso para Gustavo (gustavoamelo@gmail.com)
+--- Script concluído em 2025-10-03 21:00:03 ---
+--- Iniciando script de lembretes de vencimento (SMTP HTML) em 2025-10-04 21:00:01 ---
+Ligação à base de dados estabelecida.
+A procurar pagamentos pendentes para amanhã: 2025-10-05
+Encontrados 1 pagamentos.
+A processar emails...
+A processar pagamentos para: Gustavo
+-> Email enviado com sucesso para Gustavo (gustavoamelo@gmail.com)
+--- Script concluído em 2025-10-04 21:00:02 ---
+--- Iniciando script de lembretes de vencimento (SMTP HTML) em 2025-10-05 21:00:01 ---
+Ligação à base de dados estabelecida.
+A procurar pagamentos pendentes para amanhã: 2025-10-06
+Nenhum pagamento a vencer amanhã. A terminar.
+--- Iniciando script de lembretes de vencimento (SMTP HTML) em 2025-10-06 22:00:01 ---
+Ligação à base de dados estabelecida.
+A procurar pagamentos pendentes para amanhã: 2025-10-07
+Nenhum pagamento a vencer amanhã. A terminar.
+--- Iniciando script de lembretes de vencimento (SMTP HTML) em 2025-10-07 22:00:01 ---
+Ligação à base de dados estabelecida.
+A procurar pagamentos pendentes para amanhã: 2025-10-08
+Encontrados 1 pagamentos.
+A processar emails...
+A processar pagamentos para: Filipa
+-> Email enviado com sucesso para Filipa (filipamr@hotmail.com)
+--- Script concluído em 2025-10-07 22:00:03 ---
+--- Iniciando script de lembretes de vencimento (SMTP HTML) em 2025-10-08 22:00:01 ---
+Ligação à base de dados estabelecida.
+A procurar pagamentos pendentes para amanhã: 2025-10-09
+Nenhum pagamento a vencer amanhã. A terminar.
+--- Iniciando script de lembretes de vencimento (SMTP HTML) em 2025-10-09 22:00:01 ---
+Ligação à base de dados estabelecida.
+A procurar pagamentos pendentes para amanhã: 2025-10-10
+Nenhum pagamento a vencer amanhã. A terminar.
+--- Iniciando script de lembretes de vencimento (SMTP HTML) em 2025-10-10 22:00:02 ---
+Ligação à base de dados estabelecida.
+A procurar pagamentos pendentes para amanhã: 2025-10-11
+Encontrados 2 pagamentos.
+A processar emails...
+A processar pagamentos para: Gustavo
+-> Email enviado com sucesso para Gustavo (gustavoamelo@gmail.com)
+--- Script concluído em 2025-10-10 22:00:05 ---
+--- Iniciando script de lembretes de vencimento (SMTP HTML) em 2025-10-11 22:00:01 ---
+Ligação à base de dados estabelecida.
+A procurar pagamentos pendentes para amanhã: 2025-10-12
+Nenhum pagamento a vencer amanhã. A terminar.
+--- Iniciando script de lembretes de vencimento (SMTP HTML) em 2025-10-12 22:00:01 ---
+Ligação à base de dados estabelecida.
+A procurar pagamentos pendentes para amanhã: 2025-10-13
+Nenhum pagamento a vencer amanhã. A terminar.
+--- Iniciando script de lembretes de vencimento (SMTP HTML) em 2025-10-13 22:00:01 ---
+Ligação à base de dados estabelecida.
+A procurar pagamentos pendentes para amanhã: 2025-10-14
+Nenhum pagamento a vencer amanhã. A terminar.
+--- Iniciando script de lembretes de vencimento (SMTP HTML) em 2025-10-14 22:00:02 ---
+Ligação à base de dados estabelecida.
+A procurar pagamentos pendentes para amanhã: 2025-10-15
+Nenhum pagamento a vencer amanhã. A terminar.
+--- Iniciando script de lembretes de vencimento (SMTP HTML) em 2025-10-15 22:00:01 ---
+Ligação à base de dados estabelecida.
+A procurar pagamentos pendentes para amanhã: 2025-10-16
+Nenhum pagamento a vencer amanhã. A terminar.
+--- Iniciando script de lembretes de vencimento (SMTP HTML) em 2025-10-16 22:00:01 ---
+Ligação à base de dados estabelecida.
+A procurar pagamentos pendentes para amanhã: 2025-10-17
+Encontrados 1 pagamentos.
+A processar emails...
+A processar pagamentos para: Gustavo
+-> Email enviado com sucesso para Gustavo (gustavoamelo@gmail.com)
+--- Script concluído em 2025-10-16 22:00:03 ---
+--- Iniciando script de lembretes de vencimento (SMTP HTML) em 2025-10-17 22:00:02 ---
+Ligação à base de dados estabelecida.
+A procurar pagamentos pendentes para amanhã: 2025-10-18
+Nenhum pagamento a vencer amanhã. A terminar.
+--- Iniciando script de lembretes de vencimento (SMTP HTML) em 2025-10-18 22:00:01 ---
+Ligação à base de dados estabelecida.
+A procurar pagamentos pendentes para amanhã: 2025-10-19
+Nenhum pagamento a vencer amanhã. A terminar.
+--- Iniciando script de lembretes de vencimento (SMTP HTML) em 2025-10-20 22:00:01 ---
+Ligação à base de dados estabelecida.
+A procurar pagamentos pendentes para amanhã: 2025-10-21
+Nenhum pagamento a vencer amanhã. A terminar.
+--- Iniciando script de lembretes de vencimento (SMTP HTML) em 2025-10-21 22:00:01 ---
+Ligação à base de dados estabelecida.
+A procurar pagamentos pendentes para amanhã: 2025-10-22
+Nenhum pagamento a vencer amanhã. A terminar.
+--- Iniciando script de lembretes de vencimento (SMTP HTML) em 2025-10-22 22:00:01 ---
+Ligação à base de dados estabelecida.
+A procurar pagamentos pendentes para amanhã: 2025-10-23
+Nenhum pagamento a vencer amanhã. A terminar.

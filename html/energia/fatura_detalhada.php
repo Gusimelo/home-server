@@ -33,15 +33,16 @@ $componentes = [
     <meta charset="UTF-8">
     <title>Fatura Detalhada - Energia</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="style.css">
 </head>
-<body class="bg-gray-100 font-sans flex">
+<body class="bg-gray-100 font-sans flex h-screen">
     <?php 
         $active_page = 'fatura_detalhada';
         require_once 'sidebar.php'; 
     ?>
 
     <!-- Conteúdo Principal -->
-    <main class="flex-grow p-8 overflow-y-auto">
+    <main id="main-content" class="flex-grow p-8 overflow-y-auto">
         <div class="max-w-7xl mx-auto">
             <h1 class="text-3xl font-bold text-gray-800">Fatura Detalhada - <?php echo htmlspecialchars($nome_tarifa_contratada); ?></h1>
             <h2 class="text-xl text-gray-600 mb-6"><?php echo $titulo_pagina; ?></h2>
@@ -50,13 +51,13 @@ $componentes = [
                 <div class="p-6">
                     <h3 class="text-xl font-bold mb-4">Resumo da Fatura</h3>
                     <div class="overflow-x-auto">
-                        <table class="min-w-full text-sm">
-                            <thead class="border-b-2 border-gray-200">
+                        <table class="min-w-full">
+                            <thead class="bg-gray-800 text-white">
                             <tr>
-                                <th class="py-2 px-3 text-left font-semibold text-gray-600">Componente</th>
-                                <th class="py-2 px-3 text-right font-semibold text-gray-600">Valor Atual</th>
+                                <th class="py-2 px-3 text-left font-semibold">Componente</th>
+                                <th class="py-2 px-3 text-right font-semibold">Valor Atual</th>
                                 <?php if ($is_current_period): ?>
-                                <th class="py-2 px-3 text-right font-semibold text-blue-600">Valor Projetado</th>
+                                <th class="py-2 px-3 text-right font-semibold">Valor Projetado</th>
                                 <?php endif; ?>
                             </tr>
                         </thead>
@@ -91,25 +92,26 @@ $componentes = [
                         </div>
                     </div>
                     <div class="overflow-x-auto">
-                        <table class="min-w-full text-sm">
-                            <thead class="bg-gray-100">
-                                <tr class="text-left font-semibold text-gray-600">
+                        <table class="min-w-full">
+                            <thead class="bg-gray-800 text-white">
+                                <tr class="text-left font-semibold">
                                     <th rowspan="2" class="py-2 px-2 border-b-2 border-gray-200">Dia</th>
                                     <th colspan="6" class="py-2 px-2 text-center border-b-2 border-gray-200">Consumo (kWh)</th>
-                                    <th rowspan="2" class="py-2 px-2 border-b-2 border-gray-200 text-right">Custo Vazio (€)</th>
-                                    <th rowspan="2" class="py-2 px-2 border-b-2 border-gray-200 text-right">Custo Fora Vazio (€)</th>
-                                    <th rowspan="2" class="py-2 px-2 border-b-2 border-gray-200 text-right">Base IVA Red. (€)</th>
-                                    <th rowspan="2" class="py-2 px-2 border-b-2 border-gray-200 text-right">Base IVA Norm. (€)</th>
-                                    <th rowspan="2" class="py-2 px-2 border-b-2 border-gray-200 text-right">Total Dia (€)</th>
-                                    <th rowspan="2" class="py-2 px-2 border-b-2 border-gray-200 text-right">Total Acum. (€)</th>
+                                    <th colspan="6" class="py-2 px-2 text-center border-b-2 border-gray-200">Custo (€)</th>
                                 </tr>
-                                <tr class="text-right font-semibold text-gray-600">
+                                <tr class="text-right font-semibold">
                                     <th class="py-2 px-2 border-b-2 border-gray-200">Vazio</th>
                                     <th class="py-2 px-2 border-b-2 border-gray-200">Fora Vazio</th>
                                     <th class="py-2 px-2 border-b-2 border-gray-200">Total</th>
                                     <th class="py-2 px-2 border-b-2 border-gray-200">Vazio Acum.</th>
                                     <th class="py-2 px-2 border-b-2 border-gray-200">Fora Vazio Acum.</th>
                                     <th class="py-2 px-2 border-b-2 border-gray-200">Consumo Acum.</th>
+                                    <th class="py-2 px-2 border-b-2 border-gray-200">Vazio</th>
+                                    <th class="py-2 px-2 border-b-2 border-gray-200">Fora Vazio</th>
+                                    <th class="py-2 px-2 border-b-2 border-gray-200">Base IVA Red.</th>
+                                    <th class="py-2 px-2 border-b-2 border-gray-200">Base IVA Norm.</th>
+                                    <th class="py-2 px-2 border-b-2 border-gray-200">Total Dia</th>
+                                    <th class="py-2 px-2 border-b-2 border-gray-200">Total Acum.</th>
                                 </tr>
                             </thead>
                             <tbody class="text-gray-800">
@@ -165,5 +167,6 @@ $componentes = [
             </div>
         </div>
     </main>
+    <script src="main.js"></script>
 </body>
 </html>
