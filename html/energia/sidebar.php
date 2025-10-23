@@ -33,6 +33,8 @@ $page_base_url = basename($_SERVER['PHP_SELF']);
             <li class="mb-2"><a href="fatura_detalhada.php" class="<?php echo ($active_page === 'fatura_detalhada') ? 'block py-2 px-3 rounded text-blue-500 font-bold' : 'block py-2 px-3 rounded text-gray-700 hover:text-blue-500'; ?>">Fatura Detalhada</a></li>
             <li class="mb-2"><a href="ofertas.php" class="<?php echo ($active_page === 'ofertas') ? 'block py-2 px-3 rounded text-blue-500 font-bold' : 'block py-2 px-3 rounded text-gray-700 hover:text-blue-500'; ?>">Comparar Ofertas</a></li>
             <li class="mb-2"><a href="tarifas.php" class="<?php echo ($active_page === 'tarifas') ? 'block py-2 px-3 rounded text-blue-500 font-bold' : 'block py-2 px-3 rounded text-gray-700 hover:text-blue-500'; ?>">Gerir Tarifas</a></li>
+            <li class="mb-2"><a href="precos_dinamicos.php" class="<?php echo ($active_page === 'precos_dinamicos') ? 'block py-2 px-3 rounded text-blue-500 font-bold' : 'block py-2 px-3 rounded text-gray-700 hover:text-blue-500'; ?>">Preços Dinâmicos</a></li>
+            <li class="mb-2"><a href="backoffice.php" class="<?php echo ($active_page === 'backoffice') ? 'block py-2 px-3 rounded text-blue-500 font-bold' : 'block py-2 px-3 rounded text-gray-700 hover:text-blue-500'; ?>">Backoffice</a></li>
         </ul>
     
         <?php if (isset($periodos_historicos_result)): ?>

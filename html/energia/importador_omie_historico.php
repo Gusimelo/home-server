@@ -88,9 +88,10 @@ function processarPrecosParaDia(mysqli $db_conn, DateTime $data_alvo, Expression
     }
     while (($line = fgetcsv($handle, 1000, ";")) !== FALSE) {
         if (count($line) < 6) continue;
-        $minutos_a_adicionar = ((int)$line[3] - 1) * 15;
+        // CORREÇÃO: A coluna 3 contém a hora (1-24). Devemos definir a hora, não adicionar minutos.
+        $hora_omie = (int)$line[3] - 1; // Converter de 1-24 para 0-23
         $data_espanha = new DateTime("{$line[0]}-{$line[1]}-{$line[2]}", new DateTimeZone('Europe/Madrid'));
-        $data_espanha->modify("+$minutos_a_adicionar minutes");
+        $data_espanha->setTime($hora_omie, 0, 0);
         $data_portugal = (clone $data_espanha)->setTimezone(new DateTimeZone('Europe/Lisbon'));
         $precos_omie[$data_portugal->format('Y-m-d H:i:s')] = (float)str_replace(',', '.', $line[5]) / 1000;
     }
@@ -103,28 +104,48 @@ function processarPrecosParaDia(mysqli $db_conn, DateTime $data_alvo, Expression
 
     $db_conn->begin_transaction();
     try {
-        // --- PASSO 3: Obter Fatores de Perda (FP) ---
+        // --- PASSO 3: Obter Fatores de Perda (FP) para o dia alvo e o dia anterior ---
         $data_anterior_sql = (clone $data_alvo)->modify('-1 day')->format('Y-m-d');
         $ano_alvo = $data_alvo->format('Y');
         $ano_anterior = (clone $data_alvo)->modify('-1 day')->format('Y');
-        $sql_perdas = ($ano_alvo === $ano_anterior)
-            ? "SELECT data_hora, BT FROM perdas_erse_{$ano_alvo} WHERE DATE(data_hora) IN (?, ?)"
-            : "(SELECT data_hora, BT FROM perdas_erse_{$ano_anterior} WHERE DATE(data_hora) = ?) UNION ALL (SELECT data_hora, BT FROM perdas_erse_{$ano_alvo} WHERE DATE(data_hora) = ?)";
-        $stmt_perdas = $db_conn->prepare($sql_perdas);
-        if (!$stmt_perdas) throw new Exception("Falha ao preparar a consulta de perdas: " . $db_conn->error);
-        $stmt_perdas->bind_param("ss", $data_anterior_sql, $data_alvo_sql);
-        $stmt_perdas->execute();
-        $result_perdas = $stmt_perdas->get_result();
         $fatores_perda = [];
-        while ($row = $result_perdas->fetch_assoc()) { $fatores_perda[$row['data_hora']] = (float)$row['BT']; } // Chave é o timestamp UTC
-        $stmt_perdas->close();
+
+        if ($ano_alvo === $ano_anterior) {
+            // Caso normal: ambos os dias estão no mesmo ano
+            $sql_perdas = "SELECT data_hora, BT FROM perdas_erse_{$ano_alvo} WHERE DATE(data_hora) IN (?, ?)";
+            $stmt_perdas = $db_conn->prepare($sql_perdas);
+            if (!$stmt_perdas) throw new Exception("Falha ao preparar a consulta de perdas (mesmo ano): " . $db_conn->error);
+            $stmt_perdas->bind_param("ss", $data_anterior_sql, $data_alvo_sql);
+            $stmt_perdas->execute();
+            $result_perdas = $stmt_perdas->get_result();
+            while ($row = $result_perdas->fetch_assoc()) { $fatores_perda[$row['data_hora']] = (float)$row['BT']; }
+            $stmt_perdas->close();
+        } else {
+            // Caso de transição de ano: duas consultas separadas
+            foreach ([$ano_anterior => $data_anterior_sql, $ano_alvo => $data_alvo_sql] as $ano => $data_sql) {
+                $sql_perdas = "SELECT data_hora, BT FROM perdas_erse_{$ano} WHERE DATE(data_hora) = ?";
+                $stmt_perdas = $db_conn->prepare($sql_perdas);
+                if (!$stmt_perdas) throw new Exception("Falha ao preparar a consulta de perdas (ano $ano): " . $db_conn->error);
+                $stmt_perdas->bind_param("s", $data_sql);
+                $stmt_perdas->execute();
+                $result_perdas = $stmt_perdas->get_result();
+                while ($row = $result_perdas->fetch_assoc()) { $fatores_perda[$row['data_hora']] = (float)$row['BT']; }
+                $stmt_perdas->close();
+            }
+        }
 
         // --- PASSO 4: Calcular e agrupar preços de energia para cada fórmula ---
         echo "A calcular os preços de energia (sem TAR)...";
         $precos_finais_por_hora = [];
         foreach ($precos_omie as $data_hora_pt_str => $preco_omie) {
             $data_hora_pt = new DateTime($data_hora_pt_str, new DateTimeZone('Europe/Lisbon'));
-            $data_hora_utc_str = (clone $data_hora_pt)->setTimezone(new DateTimeZone('UTC'))->format('Y-m-d H:i:s');
+            
+            // GARANTE QUE SÓ PROCESSAMOS PREÇOS DO DIA CORRETO
+            if ($data_hora_pt->format('Y-m-d') !== $data_alvo_sql) continue;
+
+            // CORREÇÃO: Os fatores de perda estão guardados com o timestamp do FIM do intervalo de 15min.
+            // Adicionamos 15 minutos ao timestamp do preço OMIE (que é o início do intervalo) para encontrar a correspondência.
+            $data_hora_utc_str = (clone $data_hora_pt)->modify('+15 minutes')->setTimezone(new DateTimeZone('UTC'))->format('Y-m-d H:i:s');
 
             if (isset($fatores_perda[$data_hora_utc_str])) {
                 $fator_perda = $fatores_perda[$data_hora_utc_str];
